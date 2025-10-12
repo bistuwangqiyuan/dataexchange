@@ -1,0 +1,22 @@
+# robots.txt for DataExchange Crypto Trading Platform
+# Last updated: 2025-10-12
+
+User-agent: *
+Allow: /
+Allow: /markets
+Allow: /login
+Allow: /register
+
+# Disallow private pages
+Disallow: /api/
+Disallow: /wallet
+Disallow: /orders
+Disallow: /trade
+Disallow: /security
+
+# Sitemap location
+Sitemap: https://dataexchange.netlify.app/sitemap.xml
+
+# Crawl delay (optional, for politeness)
+Crawl-delay: 1
+

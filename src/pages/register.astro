@@ -1,325 +1,179 @@
 ---
 /**
- * Register Page
- * 注册页面
+ * 用户注册页面
  */
-
 import MainLayout from '@/layouts/MainLayout.astro';
 ---
 
-<MainLayout title="注册 - CryptoEx">
-  <div class="min-h-[calc(100vh-200px)] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-md w-full">
-      <div class="card">
-        <div class="text-center mb-8">
-          <h2 class="text-3xl font-bold">创建账号</h2>
-          <p class="text-gray-600 dark:text-gray-400 mt-2">
-            开始您的加密货币交易之旅
-          </p>
-        </div>
-
-        <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 px-4 py-3 rounded-lg mb-6">
-          <p class="text-sm text-yellow-800 dark:text-yellow-300">
-            ⚠️ 这是教育演示项目，请勿使用真实个人信息
-          </p>
-        </div>
-
-        <form id="registerForm" class="space-y-6">
+<MainLayout 
+  title="Create Your Free Crypto Trading Account - Sign Up Today"
+  description="Join DataExchange and start trading cryptocurrencies today. Create a free account in minutes with email verification and secure authentication. Trade Bitcoin, Ethereum, and more."
+  keywords="crypto account, trading account signup, cryptocurrency registration, create trading account, free crypto account"
+>
+  <div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full space-y-8">
+      <div>
+        <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
+          Create your account
+        </h2>
+        <p class="mt-2 text-center text-sm text-gray-600">
+          Or
+          <a href="/login" class="font-medium text-indigo-600 hover:text-indigo-500">
+            sign in to your existing account
+          </a>
+        </p>
+      </div>
+      
+      <div class="mt-8 bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+        <form id="register-form" class="space-y-6">
           <div>
-            <label for="email" class="label">邮箱地址</label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              required
-              class="input"
-              placeholder="your@email.com"
-            />
-            <p id="emailError" class="error-text hidden"></p>
+            <label for="email" class="block text-sm font-medium text-gray-700">
+              Email address
+            </label>
+            <div class="mt-1">
+              <input
+                id="email"
+                name="email"
+                type="email"
+                autocomplete="email"
+                required
+                class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                placeholder="your@email.com"
+              />
+            </div>
           </div>
 
           <div>
-            <label for="password" class="label">密码</label>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              required
-              class="input"
-              placeholder="至少8位，包含大小写字母和数字"
-            />
-            <p id="passwordError" class="error-text hidden"></p>
-            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              密码要求：最少8位，包含大写字母、小写字母和数字
+            <label for="password" class="block text-sm font-medium text-gray-700">
+              Password
+            </label>
+            <div class="mt-1">
+              <input
+                id="password"
+                name="password"
+                type="password"
+                autocomplete="new-password"
+                required
+                class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                placeholder="At least 8 characters"
+              />
+            </div>
+            <p class="mt-2 text-sm text-gray-500">
+              Must contain at least 8 characters with uppercase, lowercase, and numbers
             </p>
           </div>
 
           <div>
-            <label for="confirmPassword" class="label">确认密码</label>
-            <input
-              type="password"
-              id="confirmPassword"
-              name="confirmPassword"
-              required
-              class="input"
-              placeholder="再次输入密码"
-            />
-            <p id="confirmPasswordError" class="error-text hidden"></p>
-          </div>
-
-          <div class="flex items-start">
-            <input
-              id="terms"
-              name="terms"
-              type="checkbox"
-              required
-              class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded mt-1"
-            />
-            <label for="terms" class="ml-2 block text-sm text-gray-900 dark:text-gray-300">
-              我同意
-              <a href="/terms" class="text-primary-600 hover:text-primary-500">服务条款</a>
-              和
-              <a href="/privacy" class="text-primary-600 hover:text-primary-500">隐私政策</a>
+            <label for="confirm-password" class="block text-sm font-medium text-gray-700">
+              Confirm Password
             </label>
+            <div class="mt-1">
+              <input
+                id="confirm-password"
+                name="confirm-password"
+                type="password"
+                autocomplete="new-password"
+                required
+                class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+              />
+            </div>
           </div>
 
-          <!-- 提示信息区域 -->
-          <div id="formMessage" class="hidden px-4 py-3 rounded-lg">
-            <div class="flex items-start">
-              <span id="messageIcon" class="flex-shrink-0 mr-3 text-xl"></span>
-              <div class="flex-1">
-                <p id="messageText" class="font-medium"></p>
-                <p id="messageDetail" class="text-sm mt-1 hidden"></p>
+          <div id="error-message" class="hidden">
+            <div class="rounded-md bg-red-50 p-4">
+              <div class="flex">
+                <div class="ml-3">
+                  <h3 class="text-sm font-medium text-red-800" id="error-text"></h3>
+                </div>
               </div>
             </div>
           </div>
 
-          <button
-            type="submit"
-            id="submitButton"
-            class="w-full btn btn-primary btn-lg"
-          >
-            注册
-          </button>
+          <div>
+            <button
+              type="submit"
+              id="submit-button"
+              class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              Register
+            </button>
+          </div>
         </form>
 
-        <div class="mt-6 text-center">
-          <p class="text-sm text-gray-600 dark:text-gray-400">
-            已有账号？
-            <a href="/login" class="font-medium text-primary-600 hover:text-primary-500">
-              立即登录
-            </a>
-          </p>
+        <div class="mt-6">
+          <div class="relative">
+            <div class="absolute inset-0 flex items-center">
+              <div class="w-full border-t border-gray-300"></div>
+            </div>
+            <div class="relative flex justify-center text-sm">
+              <span class="px-2 bg-white text-gray-500">
+                Demo mode - For educational purposes only
+              </span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   </div>
-
-  <script>
-    const form = document.getElementById('registerForm') as HTMLFormElement;
-    const submitButton = document.getElementById('submitButton') as HTMLButtonElement;
-    const formMessage = document.getElementById('formMessage') as HTMLDivElement;
-    const messageIcon = document.getElementById('messageIcon') as HTMLSpanElement;
-    const messageText = document.getElementById('messageText') as HTMLParagraphElement;
-    const messageDetail = document.getElementById('messageDetail') as HTMLParagraphElement;
-    const emailInput = document.getElementById('email') as HTMLInputElement;
-    const passwordInput = document.getElementById('password') as HTMLInputElement;
-    const confirmPasswordInput = document.getElementById('confirmPassword') as HTMLInputElement;
-    const confirmPasswordError = document.getElementById('confirmPasswordError') as HTMLParagraphElement;
-
-    // 显示消息的辅助函数
-    function showMessage(type: 'success' | 'error' | 'info' | 'loading', text: string, detail?: string) {
-      formMessage.classList.remove('hidden');
-      messageText.textContent = text;
-      
-      if (detail) {
-        messageDetail.textContent = detail;
-        messageDetail.classList.remove('hidden');
-      } else {
-        messageDetail.classList.add('hidden');
-      }
-
-      // 重置所有样式
-      formMessage.className = 'px-4 py-3 rounded-lg';
-      
-      switch (type) {
-        case 'success':
-          formMessage.classList.add('bg-green-50', 'dark:bg-green-900/20', 'border', 'border-green-200', 'dark:border-green-800', 'text-green-600', 'dark:text-green-400');
-          messageIcon.textContent = '✓';
-          break;
-        case 'error':
-          formMessage.classList.add('bg-red-50', 'dark:bg-red-900/20', 'border', 'border-red-200', 'dark:border-red-800', 'text-red-600', 'dark:text-red-400');
-          messageIcon.textContent = '✕';
-          break;
-        case 'info':
-          formMessage.classList.add('bg-blue-50', 'dark:bg-blue-900/20', 'border', 'border-blue-200', 'dark:border-blue-800', 'text-blue-600', 'dark:text-blue-400');
-          messageIcon.textContent = 'ℹ';
-          break;
-        case 'loading':
-          formMessage.classList.add('bg-gray-50', 'dark:bg-gray-900/20', 'border', 'border-gray-200', 'dark:border-gray-800', 'text-gray-600', 'dark:text-gray-400');
-          messageIcon.innerHTML = '<span class="spinner inline-block w-5 h-5"></span>';
-          break;
-      }
-    }
-
-    // 隐藏消息
-    function hideMessage() {
-      formMessage.classList.add('hidden');
-    }
-
-    // 实时验证邮箱格式
-    emailInput.addEventListener('blur', () => {
-      const email = emailInput.value.trim();
-      if (email && !email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
-        showMessage('error', '邮箱格式不正确', '请输入有效的邮箱地址（如：user@example.com）');
-      } else if (formMessage.classList.contains('bg-red-50')) {
-        hideMessage();
-      }
-    });
-
-    // 实时验证密码强度
-    passwordInput.addEventListener('input', () => {
-      const password = passwordInput.value;
-      if (password.length > 0 && password.length < 8) {
-        showMessage('info', '密码强度：弱', '密码长度至少需要8个字符');
-      } else if (password.length >= 8) {
-        const hasLower = /[a-z]/.test(password);
-        const hasUpper = /[A-Z]/.test(password);
-        const hasNumber = /[0-9]/.test(password);
-        
-        if (hasLower && hasUpper && hasNumber) {
-          showMessage('success', '密码强度：强', '密码符合安全要求');
-        } else {
-          const missing = [];
-          if (!hasLower) missing.push('小写字母');
-          if (!hasUpper) missing.push('大写字母');
-          if (!hasNumber) missing.push('数字');
-          showMessage('info', '密码强度：中', `还需要包含：${missing.join('、')}`);
-        }
-      }
-    });
-
-    // 验证密码匹配
-    confirmPasswordInput.addEventListener('input', () => {
-      if (confirmPasswordInput.value && passwordInput.value !== confirmPasswordInput.value) {
-        confirmPasswordError.textContent = '两次输入的密码不一致';
-        confirmPasswordError.classList.remove('hidden');
-      } else {
-        confirmPasswordError.classList.add('hidden');
-      }
-    });
-
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-
-      // 获取表单数据
-      const formData = new FormData(form);
-      const email = formData.get('email') as string;
-      const password = formData.get('password') as string;
-      const confirmPassword = formData.get('confirmPassword') as string;
-
-      // 前端验证
-      if (!email || !password || !confirmPassword) {
-        showMessage('error', '请填写所有必填项', '邮箱、密码和确认密码都不能为空');
-        return;
-      }
-
-      if (!email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
-        showMessage('error', '邮箱格式不正确', '请输入有效的邮箱地址');
-        return;
-      }
-
-      // 验证密码强度
-      if (password.length < 8) {
-        showMessage('error', '密码长度不足', '密码至少需要8个字符');
-        return;
-      }
-
-      if (!/[a-z]/.test(password)) {
-        showMessage('error', '密码必须包含小写字母', '请添加至少一个小写字母（a-z）');
-        return;
-      }
-
-      if (!/[A-Z]/.test(password)) {
-        showMessage('error', '密码必须包含大写字母', '请添加至少一个大写字母（A-Z）');
-        return;
-      }
-
-      if (!/[0-9]/.test(password)) {
-        showMessage('error', '密码必须包含数字', '请添加至少一个数字（0-9）');
-        return;
-      }
-
-      // 验证密码匹配
-      if (password !== confirmPassword) {
-        confirmPasswordError.textContent = '两次输入的密码不一致';
-        confirmPasswordError.classList.remove('hidden');
-        showMessage('error', '密码确认失败', '请确保两次输入的密码完全一致');
-        return;
-      }
-
-      // 显示加载状态
-      showMessage('loading', '正在创建您的账号...', '请稍候，这可能需要几秒钟');
-      submitButton.disabled = true;
-      submitButton.innerHTML = '<span class="spinner"></span> 注册中...';
-
-      try {
-        const response = await fetch('/api/auth/register', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ email, password }),
-        });
-
-        const result = await response.json();
-
-        if (result.success) {
-          // 注册成功
-          showMessage('success', '注册成功！', '正在为您跳转到市场页面...');
-          
-          // 延迟跳转
-          setTimeout(() => {
-            window.location.href = '/markets';
-          }, 800);
-        } else {
-          // 显示错误
-          const errorMessage = result.error?.message || '注册失败';
-          let errorDetail = '';
-          
-          // 如果是邮箱确认消息，显示为信息提示
-          if (errorMessage.includes('check your email')) {
-            showMessage('info', '注册成功！请确认邮箱', '我们已向您的邮箱发送确认链接，请点击确认后再登录。');
-            submitButton.disabled = false;
-            submitButton.textContent = '注册';
-            return;
-          }
-          
-          // 处理其他错误
-          if (errorMessage.includes('already') || errorMessage.includes('exist')) {
-            errorDetail = '该邮箱已被注册，请直接登录或使用其他邮箱';
-          } else if (errorMessage.includes('invalid') || errorMessage.includes('Invalid')) {
-            errorDetail = '邮箱或密码格式不正确，请检查后重试';
-          } else if (errorMessage.includes('weak') || errorMessage.includes('strong')) {
-            errorDetail = '密码强度不足，请使用更复杂的密码';
-          } else {
-            errorDetail = '请稍后重试或联系客服';
-          }
-          
-          showMessage('error', errorMessage, errorDetail);
-          
-          // 恢复按钮
-          submitButton.disabled = false;
-          submitButton.textContent = '注册';
-        }
-      } catch (error) {
-        showMessage('error', '网络连接失败', '请检查您的网络连接后重试');
-        
-        // 恢复按钮
-        submitButton.disabled = false;
-        submitButton.textContent = '注册';
-      }
-    });
-  </script>
 </MainLayout>
 
+<script>
+  const form = document.getElementById('register-form') as HTMLFormElement;
+  const submitButton = document.getElementById('submit-button') as HTMLButtonElement;
+  const errorMessage = document.getElementById('error-message') as HTMLDivElement;
+  const errorText = document.getElementById('error-text') as HTMLHeadingElement;
+
+  function showError(message: string) {
+    errorText.textContent = message;
+    errorMessage.classList.remove('hidden');
+  }
+
+  function hideError() {
+    errorMessage.classList.add('hidden');
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    hideError();
+
+    const email = (document.getElementById('email') as HTMLInputElement).value;
+    const password = (document.getElementById('password') as HTMLInputElement).value;
+    const confirmPassword = (document.getElementById('confirm-password') as HTMLInputElement).value;
+
+    // 验证密码匹配
+    if (password !== confirmPassword) {
+      showError('Passwords do not match');
+      return;
+    }
+
+    // 禁用提交按钮
+    submitButton.disabled = true;
+    submitButton.textContent = 'Registering...';
+
+    try {
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        // 注册成功，重定向到登录页
+        alert('Registration successful! Please login.');
+        window.location.href = '/login';
+      } else {
+        showError(data.error?.message || 'Registration failed');
+      }
+    } catch (error) {
+      showError('Network error. Please try again.');
+      console.error('Registration error:', error);
+    } finally {
+      submitButton.disabled = false;
+      submitButton.textContent = 'Register';
+    }
+  });
+</script>

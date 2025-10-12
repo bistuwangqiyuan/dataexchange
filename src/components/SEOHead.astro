@@ -1,0 +1,96 @@
+---
+/**
+ * SEO Head Component
+ * 包含所有SEO最佳实践的meta标签和结构化数据
+ */
+
+interface Props {
+  title: string;
+  description: string;
+  keywords?: string;
+  image?: string;
+  url?: string;
+  type?: 'website' | 'article';
+  noindex?: boolean;
+  canonical?: string;
+}
+
+const {
+  title,
+  description,
+  keywords = 'cryptocurrency, crypto trading, bitcoin, ethereum, trading platform, digital assets',
+  image = '/og-image.png',
+  url = Astro.url.href,
+  type = 'website',
+  noindex = false,
+  canonical = Astro.url.href,
+} = Astro.props;
+
+const siteName = 'DataExchange - Crypto Trading Platform';
+const fullTitle = title.includes(siteName) ? title : `${title} | ${siteName}`;
+---
+
+<!-- Primary Meta Tags -->
+<title>{fullTitle}</title>
+<meta name="title" content={fullTitle} />
+<meta name="description" content={description} />
+<meta name="keywords" content={keywords} />
+{noindex && <meta name="robots" content="noindex, nofollow" />}
+{!noindex && <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />}
+<link rel="canonical" href={canonical} />
+
+<!-- Open Graph / Facebook -->
+<meta property="og:type" content={type} />
+<meta property="og:url" content={url} />
+<meta property="og:title" content={fullTitle} />
+<meta property="og:description" content={description} />
+<meta property="og:image" content={new URL(image, Astro.site).href} />
+<meta property="og:site_name" content={siteName} />
+<meta property="og:locale" content="en_US" />
+
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:url" content={url} />
+<meta name="twitter:title" content={fullTitle} />
+<meta name="twitter:description" content={description} />
+<meta name="twitter:image" content={new URL(image, Astro.site).href} />
+<meta name="twitter:creator" content="@DataExchange" />
+
+<!-- Additional Meta Tags -->
+<meta name="author" content="DataExchange Team" />
+<meta name="theme-color" content="#1F2937" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="DataExchange" />
+
+<!-- Structured Data / JSON-LD -->
+<script type="application/ld+json" set:html={JSON.stringify({
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": siteName,
+  "url": Astro.site?.href || url,
+  "description": description,
+  "potentialAction": {
+    "@type": "SearchAction",
+    "target": {
+      "@type": "EntryPoint",
+      "urlTemplate": `${Astro.site?.href || url}/markets?search={search_term_string}`
+    },
+    "query-input": "required name=search_term_string"
+  }
+})} />
+
+<!-- Organization Schema -->
+<script type="application/ld+json" set:html={JSON.stringify({
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "DataExchange",
+  "url": Astro.site?.href || url,
+  "logo": new URL('/logo.png', Astro.site).href,
+  "description": "Modern cryptocurrency trading platform for digital assets",
+  "sameAs": [
+    "https://twitter.com/dataexchange",
+    "https://github.com/dataexchange"
+  ]
+})} />
+
