@@ -57,12 +57,15 @@
   [headers.values]
     Cache-Control = "no-cache, no-store, must-revalidate"
 
-# 重定向规则
+# 重定向规则 - 顺序很重要！
+# API请求路由到Astro SSR函数
 [[redirects]]
   from = "/api/*"
-  to = "/.netlify/functions/:splat"
+  to = "/.netlify/functions/ssr"
   status = 200
+  force = true
 
+# SPA回退路由
 [[redirects]]
   from = "/*"
   to = "/index.html"
