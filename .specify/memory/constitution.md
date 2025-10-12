@@ -1,249 +1,196 @@
 <!--
 Sync Impact Report:
-Version: 1.0.0 (Initial Constitution)
-Ratification Date: 2025-10-11
-Changes:
-  - Initial creation of project constitution
-  - Defined 8 core principles for Cow Experiment Data Management System
-  - Established governance framework for Jamstack + Netlify deployment
-Templates Status:
-  - plan-template.md: ✅ Created
-  - spec-template.md: ✅ Created
-  - tasks-template.md: ✅ Created
-  - commands/: ⚠ Pending creation
-Follow-up TODOs:
-  - Configure Supabase database schema for cow data
-  - Set up Netlify deployment pipeline
-  - Implement initial test suite
+- Version: 1.0.0 (Initial constitution creation)
+- Modified principles: N/A (Initial version)
+- Added sections: All core sections
+- Removed sections: N/A
+- Templates status:
+  ✅ constitution.md created
+  ✅ plan-template.md will be created
+  ✅ spec-template.md will be created
+  ✅ tasks-template.md will be created
+- Follow-up TODOs: Project name to be defined
 -->
 
-# 奶牛实验数据管理系统项目原则
-# Cow Experiment Data Management System - Project Constitution
+# DataExchange Project Constitution
 
-**版本 (Version):** 1.0.0  
-**批准日期 (Ratification Date):** 2025-10-11  
-**最后修订 (Last Amended):** 2025-10-11  
-**项目类型 (Project Type):** Web Application (Jamstack)  
-**部署平台 (Deployment):** Netlify  
-**主要技术栈 (Tech Stack):** Astro/Next.js + Supabase + Tailwind CSS
+**Version**: 1.0.0  
+**Ratified**: 2025-10-11  
+**Last Amended**: 2025-10-11
 
----
+## Purpose
 
-## 项目愿景 (Project Vision)
-
-奶牛实验数据管理系统旨在为奶牛养殖场提供一个现代化、高效的数据管理平台，实现对奶牛养殖全生命周期数据的系统化记录、分析和管理。通过 Jamstack 架构和云端部署，确保数据的安全性、可访问性和实时性，帮助养殖场提升管理效率和科学决策能力。
+This constitution defines the core principles, technical standards, and governance model for the DataExchange project. All contributors, code, and architectural decisions must align with these foundational rules.
 
 ---
 
-## 核心原则 (Core Principles)
+## Core Principles
 
-### 原则 1：测试驱动开发 (Test-Driven Development)
-**强制性 (Mandatory)**
+### Principle 1: Test-Driven Development (TDD) 是强制的
 
-所有功能开发必须遵循测试驱动开发（TDD）流程：
-- 在编写任何功能代码之前，必须先编写对应的单元测试
-- 每个模块、组件、API 端点都必须有对应的自动化测试
-- 测试覆盖率必须达到最低 80%，核心业务逻辑模块要求 95% 以上
-- 测试文件位于 `/tests` 目录，镜像主应用结构
-- 每个功能至少包含：1 个正常用例、1 个边界用例、1 个失败用例
-- CI/CD 流程中所有测试必须通过才能部署
+**Rule**: 所有功能代码必须先编写测试，然后实现功能。测试覆盖率必须达到80%以上。
 
-**理由 (Rationale):**  
-养殖数据直接影响决策和经济效益，错误可能导致重大损失。TDD 确保代码质量和系统可靠性，减少生产环境 bug。
+**Rationale**: TDD确保代码质量、可维护性和可测试性。先写测试能够：
+- 明确功能需求和边界条件
+- 防止回归错误
+- 提高代码设计质量
+- 确保文档与实现同步
 
----
+**Implementation**:
+- 每个新功能必须包含至少1个预期用例测试
+- 每个新功能必须包含至少1个边界情况测试
+- 每个新功能必须包含至少1个失败场景测试
+- 测试应组织在 `/tests` 目录中，镜像主应用结构
+- CI/CD管道必须强制测试通过率100%才能合并
 
-### 原则 2：详细文档注释 (Comprehensive Documentation)
-**强制性 (Mandatory)**
+### Principle 2: 代码必须有详细的文档注释
 
-所有代码必须包含详细的文档注释：
-- 每个函数/方法必须有 JSDoc/TSDoc 注释，说明用途、参数、返回值
-- 复杂逻辑必须添加内联注释，使用 `// Reason:` 说明设计决策
-- 组件必须注明 Props 类型和使用示例
-- API 端点必须注明请求/响应格式、错误码
-- 数据库模型必须注释每个字段的业务含义
-- README.md 必须保持更新，记录新功能、依赖变更、设置步骤
+**Rule**: 所有公共API、复杂逻辑和关键业务流程必须有完整的文档注释。
 
-**理由 (Rationale):**  
-系统涉及复杂的养殖业务逻辑，详细文档确保团队成员和未来维护者能够快速理解代码意图，降低维护成本。
+**Rationale**: 详细的文档注释确保代码可读性和团队协作效率，降低维护成本。
 
----
+**Implementation**:
+- 使用JSDoc、TypeDoc或语言对应的文档标准
+- 每个函数/方法必须包含：用途说明、参数描述、返回值说明、异常情况
+- 复杂算法必须添加内联注释说明 `// Reason: ...` 解释为什么这样做
+- 非显而易见的代码必须添加注释，确保中级开发者能理解
+- 关键业务逻辑必须包含中间步骤的日志输出
 
-### 原则 3：Jamstack 架构 (Jamstack Architecture)
-**强制性 (Mandatory)**
+### Principle 3: 使用Jamstack技术栈
 
-项目必须严格遵循 Jamstack 架构原则：
-- **静态优先：** 所有可预渲染的页面必须静态生成（SSG）
-- **API 解耦：** 后端功能通过 Netlify Functions 和 Supabase 实现
-- **无服务器：** 禁止使用传统服务器或数据库（除 Supabase）
-- **CDN 分发：** 所有静态资源通过 Netlify CDN 分发
-- **渐进增强：** 核心功能在无 JavaScript 环境下可用
-- **性能优先：** 首屏加载时间 < 2s，Lighthouse 性能评分 > 90
+**Rule**: 项目必须遵循Jamstack架构原则：预渲染、解耦、静态优先。
 
-**技术选型限制：**
-- 前端框架：Astro（推荐）或 Next.js
-- 数据库：Supabase（PostgreSQL + 实时订阅）
-- 样式：Tailwind CSS
-- 部署：Netlify（唯一允许的部署平台）
+**Rationale**: Jamstack提供更好的性能、安全性、扩展性和开发体验。
 
-**理由 (Rationale):**  
-Jamstack 提供卓越的性能、安全性和可维护性，适合养殖场在各种网络环境下使用。无服务器架构降低运维成本，Supabase 提供实时数据能力。
+**Implementation**:
+- 使用静态站点生成器（如Astro、Next.js等）
+- API层通过无服务器函数（Supabase Functions、Netlify Functions）实现
+- 使用Supabase作为数据服务，所有数据通过API访问
+- 不使用传统后端服务器或本地数据库
+- 部署到Netlify或类似的Jamstack托管平台
+- 采用移动优先的响应式设计
 
----
+### Principle 4: 用户的所有输入都应该被记录在md中
 
-### 原则 4：用户输入记录 (User Input Logging)
-**强制性 (Mandatory)**
+**Rule**: 所有用户交互、需求变更、决策过程必须记录在Markdown文档中。
 
-所有用户交互和输入必须被记录和追踪：
-- 用户提交的表单数据必须保存到 Supabase 数据库
-- 重要操作（增删改）必须记录到审计日志表
-- 用户反馈、问题报告必须以 Markdown 格式存储
-- 每条记录必须包含：用户 ID、时间戳、操作类型、IP 地址（可选）
-- 敏感数据必须加密存储，符合数据保护法规
-- 日志保留期限：操作日志 1 年，审计日志永久
+**Rationale**: 完整的文档记录确保项目透明度、可追溯性和知识传承。
 
-**理由 (Rationale):**  
-养殖数据具有长期价值，完整的记录有助于追溯问题、分析趋势、满足合规要求。Markdown 格式便于人工审查和版本控制。
+**Implementation**:
+- 新任务在 `README.md` 的 TASK 部分记录，包含简要描述和日期
+- 重要决策和架构变更记录在 `docs/decisions/` 目录下的ADR（Architecture Decision Record）
+- 用户需求和反馈记录在 `docs/requirements/` 目录
+- 开发过程中发现的子任务添加到 README.md 的 "Discovered During Work" 部分
+- 完成的任务立即在 README.md 中标记为完成
+- 重大更新必须同步更新 README.md
 
 ---
 
-### 原则 5：数据安全与隐私 (Data Security & Privacy)
-**强制性 (Mandatory)**
+## Technical Standards
 
-数据安全是不可妥协的核心要求：
-- **认证授权：** 使用 Supabase Auth，支持行级安全（RLS）
-- **权限分级：** 管理员、养殖员、访客三级权限体系
-- **数据加密：** 传输层 HTTPS，静态数据库级加密
-- **访问控制：** 敏感数据（如经济数据）限制访问权限
-- **备份策略：** Supabase 自动备份 + 每周手动备份验证
-- **隐私合规：** 遵守 GDPR/PIPL，提供数据导出/删除功能
+### Code Quality
 
-**禁止事项：**
-- 在客户端代码中硬编码 API 密钥
-- 将敏感日志提交到 Git 仓库
-- 在公共网络传输未加密的养殖数据
+- **Linting**: 所有代码必须通过linter检查（ESLint、Prettier等）
+- **Type Safety**: 优先使用TypeScript或类型注解
+- **Naming**: 使用camelCase命名变量和函数，PascalCase命名类和组件
+- **Modularity**: 代码按功能或职责组织成清晰分离的模块
+- **Imports**: 优先使用相对导入（包内）
+- **File Size**: 单个代码文件不得超过99999行，超过需重构拆分
 
-**理由 (Rationale):**  
-养殖数据可能包含商业机密（育种配方、经济数据等），数据泄露可能导致竞争劣势或法律风险。
+### Security & Performance
 
----
+- **Priority Order**: 安全 > 可读 > 性能
+- **Data Validation**: 所有用户输入必须验证和清理
+- **Error Handling**: 使用结构化错误处理，不得使用全局try-catch掩盖问题
+- **Real Data Only**: 禁止使用模拟数据回退机制，必须使用真实数据和真实API调用
+- **No Fallbacks**: 不得使用降级机制掩盖问题，而应通过精致的提示通知用户
 
-### 原则 6：移动优先设计 (Mobile-First Design)
-**强制性 (Mandatory)**
+### Architecture Patterns
 
-所有界面必须采用移动优先的响应式设计：
-- **设计流程：** 先设计移动端（320px 宽度），再适配桌面端
-- **触控优化：** 按钮最小尺寸 44x44px，表单输入易用
-- **离线支持：** 核心数据查看功能支持离线缓存（Service Worker）
-- **网络优化：** 图片懒加载、资源压缩、最小化请求数量
-- **实地测试：** 在养殖场实际环境（可能信号较弱）测试可用性
-
-**响应式断点：**
-- 移动端：320px - 768px（主要目标）
-- 平板：769px - 1024px
-- 桌面：1025px+
-
-**理由 (Rationale):**  
-养殖员需要在牛舍、饲料房等现场环境记录数据，移动设备是主要使用场景。移动优先确保核心功能在资源受限环境下可用。
+- **Single Source of Truth**: 以仓库内"现有代码 + 规范化示例（code-examples/）+ 更新式文档"为唯一依据
+- **No Hallucination**: 禁止捏造库、函数、文件或结果
+- **Path Verification**: 引用代码前必须确认文件路径和模块名存在
+- **Component Reusability**: 所有页面使用统一的header和footer组件
+- **Permission Management**: 所有数据权限管理由Supabase远程服务处理
 
 ---
 
-### 原则 7：实时数据同步 (Real-Time Data Sync)
-**强制性 (Mandatory)**
+## Development Workflow
 
-系统必须支持实时数据同步和协作：
-- 使用 Supabase Realtime 订阅数据库变更
-- 多用户同时操作时，数据变更立即推送到所有客户端
-- 关键数据（如奶牛健康状态）变更时，触发实时通知
-- 冲突解决策略：最后写入优先，带版本号和时间戳
-- 网络断开时，本地缓存数据并在恢复后同步
+### Phase Separation
 
-**实时数据类型：**
-- 奶牛健康监测数据（体温、活动量）
-- 饲料库存变动
-- 产奶量记录
-- 紧急事件通知
+开发过程必须清晰分为以下独立阶段，不得混淆：
 
-**理由 (Rationale):**  
-养殖场是多人协作环境，实时同步避免数据冲突，确保决策基于最新信息。健康监测数据的实时性可能影响及时治疗。
+1. **规划阶段**: 需求分析、技术选型、架构设计
+2. **文档阶段**: PRD编写、API设计文档、数据模型设计
+3. **设计阶段**: UI/UX设计、组件设计
+4. **开发阶段**: 代码实现（不运行终端命令）
+5. **测试阶段**: 编写测试用例、运行测试、修复bug
+6. **部署阶段**: 构建、部署到生产环境
 
----
+**重要规则**:
+- 测试和部署阶段外，其他阶段不得运行终端命令
+- 开发阶段不得部署，除非用户有特殊需求
+- 所有阶段完成后才进行下一阶段
 
-### 原则 8：数据可追溯性 (Data Traceability)
-**强制性 (Mandatory)**
+### Testing Protocol
 
-所有数据变更必须可追溯和审计：
-- **版本控制：** 关键业务数据（奶牛档案、配种记录）保留历史版本
-- **审计日志：** 记录每次 CRUD 操作的用户、时间、变更内容
-- **变更对比：** 支持查看数据变更前后的差异
-- **不可删除：** 历史数据只能标记为"已归档"，不可物理删除
-- **追溯周期：** 奶牛全生命周期数据永久保留，操作日志至少 3 年
+- 测试前必须编制详细的最高质量测试用例
+- UI界面类测试可通过MCP调用工具实现
+- 优先使用Node.js脚本运行测试，避免使用npm命令（npm常卡死）
+- 测试必须使用真实数据，不得使用模拟数据
+- 本地+CI通过率必须=100%才能合并
 
-**实现方式：**
-- Supabase 数据库触发器记录变更到 `audit_logs` 表
-- 关键表使用 `created_at`, `updated_at`, `updated_by` 字段
-- 软删除模式：`deleted_at` 字段标记删除，不执行 DELETE
+### Deployment Protocol
 
-**理由 (Rationale):**  
-养殖数据用于科研、育种改良、疾病追踪等长期分析。完整的历史记录有助于发现规律、追溯问题根源、满足监管要求。
+- 使用pnpm而非npm进行部署
+- 部署尽量分成构建和无构建部署两步执行
+- Netlify部署拆分为：`pnpm run build` 和 `netlify deploy --prod --no-build`
+- 长时间运行的终端命令应拆分为30秒以下的分步命令
+- 所有任务开发完成后统一部署
 
----
+### Documentation Maintenance
 
-## 治理框架 (Governance)
-
-### 修订程序 (Amendment Process)
-本原则文档的修订必须经过以下流程：
-1. 提出修订建议（GitHub Issue 或团队会议）
-2. 团队讨论和投票（至少 2/3 多数通过）
-3. 更新本文档并递增版本号
-4. 同步更新相关模板和文档
-5. 通知所有团队成员
-
-### 版本控制 (Versioning)
-- **主版本 (MAJOR):** 移除或重新定义核心原则
-- **次版本 (MINOR):** 新增原则或重大扩展
-- **修订版 (PATCH):** 澄清、修正措辞、非语义修改
-
-### 合规审查 (Compliance Review)
-- 每个 Pull Request 必须经过原则合规性检查
-- 每季度进行一次全面的原则遵守审计
-- 违反强制性原则的代码不得合并到主分支
+- 开发前必须编制最高质量的README和PRD等必要文档
+- 新功能添加、依赖变更、设置步骤修改时必须更新README.md
+- 更新README时不得删除现有内容，应标记完成或追加更新
+- 发现的子任务添加到README的"Discovered During Work"部分
+- 完成任务后立即在README的TASK部分标记为完成
 
 ---
 
-## 附录：数据管理范围 (Appendix: Data Management Scope)
+## Governance
 
-奶牛实验数据管理系统需管理以下数据类型：
+### Amendment Procedure
 
-### 基础档案数据
-- 奶牛基本信息（编号、品种、出生日期、系谱）
-- 养殖场信息（场地、分区、设备）
-- 人员信息（养殖员、兽医）
+1. 提出修正案并说明理由
+2. 评估对现有原则和模板的影响
+3. 更新constitution.md并递增版本号
+4. 同步更新所有依赖的模板文件
+5. 提交带有清晰说明的commit
 
-### 日常管理数据
-- 饲料配方与投喂记录
-- 健康检查与疫苗接种
-- 产奶量与质量数据
-- 行为观察记录
+### Versioning Policy
 
-### 繁殖数据
-- 发情监测
-- 配种记录
-- 妊娠检查
-- 产犊信息
+遵循语义化版本（Semantic Versioning）：
 
-### 经济数据
-- 成本核算（饲料、人工、医疗）
-- 产出收益（奶量、犊牛销售）
-- 投入产出比分析
+- **MAJOR**: 向后不兼容的治理/原则移除或重新定义
+- **MINOR**: 新增原则/部分或实质性扩展指导
+- **PATCH**: 澄清措辞、修正拼写、非语义细化
 
-### 科研数据
-- 实验设计与分组
-- 数据采集与观测
-- 统计分析结果
-- 论文与报告
+### Compliance Review
+
+- 每次PR必须检查是否符合constitution原则
+- CI/CD管道强制执行测试覆盖率和linting规则
+- 定期（季度）审查constitution的有效性和相关性
+- 违反constitution的代码不得合并到主分支
 
 ---
 
-**文档维护者 (Document Maintainer):** 项目负责人  
-**下次审查日期 (Next Review Date):** 2026-01-11
+## Enforcement
+
+违反本宪章的代码或流程将：
+1. 在PR审查中被拒绝
+2. 在CI/CD中失败
+3. 需要重新设计以符合原则
+
+本宪章是项目的最高技术法律，所有决策必须以此为准。
