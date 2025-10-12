@@ -1,41 +1,89 @@
 /**
  * POST /api/orders/create
- * 创建订单
+ * 创建订单（市价单或限价单）
  */
 
 import type { APIRoute } from 'astro';
-import { requireAuth } from '@/lib/services/auth.service';
 import { createOrder } from '@/lib/services/order.service';
-import { createOrderSchema } from '@/lib/utils/validation';
-import { successResponse, errorResponse, unauthorizedResponse, validationErrorResponse } from '@/lib/utils/api-response';
+import { successResponse, errorResponse } from '@/lib/utils/api-response';
 import { logger } from '@/lib/utils/logger';
 import { ErrorCode } from '@/types/api.types';
+import { getCurrentUser } from '@/lib/services/auth.service';
 
 export const prerender = false;
 
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, cookies }) => {
   try {
     // 验证用户登录
-    const user = await requireAuth();
-
-    const body = await request.json();
-    
-    // 验证请求数据
-    const validation = createOrderSchema.safeParse(body);
-    if (!validation.success) {
-      const errors: Record<string, string[]> = {};
-      validation.error.errors.forEach(err => {
-        const key = err.path.join('.');
-        if (!errors[key]) errors[key] = [];
-        errors[key].push(err.message);
-      });
-      return new Response(JSON.stringify(validationErrorResponse(errors)), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
+    const user = await getCurrentUser();
+    if (!user) {
+      return new Response(
+        JSON.stringify(errorResponse(ErrorCode.UNAUTHORIZED, 'Please login first')),
+        {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
     }
 
-    const order = await createOrder(user.id, validation.data);
+    // 解析请求体
+    const body = await request.json();
+    const { trading_pair, order_type, side, price, quantity } = body;
+
+    // 验证必填字段
+    if (!trading_pair || !order_type || !side || !quantity) {
+      return new Response(
+        JSON.stringify(errorResponse(ErrorCode.REQUIRED_FIELD, 'Missing required fields')),
+        {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    // 验证订单类型
+    if (!['market', 'limit'].includes(order_type)) {
+      return new Response(
+        JSON.stringify(errorResponse(ErrorCode.INVALID_INPUT, 'Invalid order type')),
+        {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    // 验证订单方向
+    if (!['buy', 'sell'].includes(side)) {
+      return new Response(
+        JSON.stringify(errorResponse(ErrorCode.INVALID_INPUT, 'Invalid order side')),
+        {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    // 限价单必须提供价格
+    if (order_type === 'limit' && !price) {
+      return new Response(
+        JSON.stringify(errorResponse(ErrorCode.REQUIRED_FIELD, 'Price is required for limit orders')),
+        {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    // 创建订单
+    const order = await createOrder(user.id, {
+      trading_pair,
+      order_type,
+      side,
+      price,
+      quantity,
+    });
+
+    logger.info('Order created via API', { userId: user.id, orderId: order.id });
 
     return new Response(JSON.stringify(successResponse(order)), {
       status: 201,
@@ -43,33 +91,30 @@ export const POST: APIRoute = async ({ request }) => {
     });
   } catch (error) {
     logger.error('Create order endpoint error', error);
-    
-    if (error instanceof Error && error.message.includes('Unauthorized')) {
-      return new Response(JSON.stringify(unauthorizedResponse()), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-    
-    if (error instanceof Error && error.message.includes('Insufficient balance')) {
-      return new Response(
-        JSON.stringify(errorResponse(ErrorCode.INSUFFICIENT_BALANCE, error.message)),
-        {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
-        }
-      );
-    }
-    
+
     const message = error instanceof Error ? error.message : 'Failed to create order';
-    
+
+    // 判断错误类型
+    let errorCode = ErrorCode.INTERNAL_ERROR;
+    let statusCode = 500;
+
+    if (message.includes('Insufficient balance')) {
+      errorCode = ErrorCode.INSUFFICIENT_BALANCE;
+      statusCode = 400;
+    } else if (message.includes('Invalid')) {
+      errorCode = ErrorCode.INVALID_INPUT;
+      statusCode = 400;
+    } else if (message.includes('not found')) {
+      errorCode = ErrorCode.INVALID_TRADING_PAIR;
+      statusCode = 400;
+    }
+
     return new Response(
-      JSON.stringify(errorResponse(ErrorCode.INTERNAL_ERROR, message)),
+      JSON.stringify(errorResponse(errorCode, message)),
       {
-        status: 500,
+        status: statusCode,
         headers: { 'Content-Type': 'application/json' },
       }
     );
   }
 };
-

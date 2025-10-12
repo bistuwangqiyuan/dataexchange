@@ -1,7 +1,7 @@
 ---
 /**
  * Wallet Page
- * 钱包页面
+ * 钱包管理页面 - 显示余额、充值、提现和交易历史
  */
 
 import MainLayout from '@/layouts/MainLayout.astro';
@@ -9,20 +9,444 @@ import MainLayout from '@/layouts/MainLayout.astro';
 
 <MainLayout title="钱包 - CryptoEx">
   <div class="container py-8">
-    <h1 class="text-4xl font-bold mb-8">我的钱包</h1>
-    
-    <div class="card text-center py-12">
-      <svg class="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
-      </svg>
-      <h2 class="text-2xl font-bold mb-2">钱包功能开发中</h2>
-      <p class="text-gray-600 dark:text-gray-400 mb-6">
-        资产管理界面即将上线
+    <div class="mb-6">
+      <h1 class="text-3xl font-bold mb-2">我的钱包</h1>
+      <p class="text-gray-600 dark:text-gray-400">
+        管理您的数字资产，支持充值和提现
       </p>
-      <a href="/markets" class="btn btn-primary">
-        查看市场行情
-      </a>
+    </div>
+
+    <!-- 总资产卡片 -->
+    <div class="card mb-6">
+      <div class="p-6">
+        <h2 class="text-sm text-gray-600 dark:text-gray-400 mb-2">总资产估值 (USDT)</h2>
+        <p class="text-4xl font-bold" id="totalAssetValue">加载中...</p>
+      </div>
+    </div>
+
+    <!-- 钱包余额列表 -->
+    <div class="card mb-6">
+      <div class="p-6">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-xl font-bold">币种余额</h2>
+          <div class="flex gap-2">
+            <button
+              id="depositBtn"
+              class="btn btn-primary"
+            >
+              充值
+            </button>
+            <button
+              id="withdrawBtn"
+              class="btn btn-secondary"
+            >
+              提现
+            </button>
+            <button
+              id="refreshBtn"
+              class="text-primary-600 hover:text-primary-700 text-sm font-medium"
+            >
+              刷新
+            </button>
+          </div>
+        </div>
+
+        <!-- 余额表格 -->
+        <div id="balancesContainer">
+          <div class="text-center py-8">
+            <div class="spinner w-8 h-8 mx-auto mb-2"></div>
+            <p class="text-gray-600 dark:text-gray-400">加载余额中...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 交易历史 -->
+    <div class="card">
+      <div class="p-6">
+        <h2 class="text-xl font-bold mb-4">交易历史</h2>
+        <div id="transactionsContainer">
+          <div class="text-center py-8">
+            <div class="spinner w-8 h-8 mx-auto mb-2"></div>
+            <p class="text-gray-600 dark:text-gray-400">加载历史记录中...</p>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
-</MainLayout>
 
+  <!-- 充值模态框 -->
+  <div id="depositModal" class="modal hidden">
+    <div class="modal-content">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-xl font-bold">模拟充值</h3>
+        <button class="close-modal text-gray-500 hover:text-gray-700">✕</button>
+      </div>
+      <form id="depositForm">
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium mb-2">币种</label>
+            <select id="depositCurrency" class="input" required>
+              <option value="USDT">USDT</option>
+              <option value="BTC">BTC</option>
+              <option value="ETH">ETH</option>
+              <option value="BNB">BNB</option>
+              <option value="SOL">SOL</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-2">金额</label>
+            <input
+              type="number"
+              id="depositAmount"
+              class="input"
+              placeholder="请输入充值金额"
+              step="0.00000001"
+              required
+            />
+          </div>
+          <div class="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-sm">
+            <p class="text-blue-600 dark:text-blue-400">
+              这是模拟充值功能，用于测试。实际生产环境需要集成真实的支付网关。
+            </p>
+          </div>
+          <div id="depositMessage" class="hidden"></div>
+          <button type="submit" class="btn btn-primary w-full">
+            确认充值
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 提现模态框 -->
+  <div id="withdrawModal" class="modal hidden">
+    <div class="modal-content">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-xl font-bold">申请提现</h3>
+        <button class="close-modal text-gray-500 hover:text-gray-700">✕</button>
+      </div>
+      <form id="withdrawForm">
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium mb-2">币种</label>
+            <select id="withdrawCurrency" class="input" required>
+              <option value="USDT">USDT</option>
+              <option value="BTC">BTC</option>
+              <option value="ETH">ETH</option>
+              <option value="BNB">BNB</option>
+              <option value="SOL">SOL</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-2">金额</label>
+            <input
+              type="number"
+              id="withdrawAmount"
+              class="input"
+              placeholder="请输入提现金额"
+              step="0.00000001"
+              required
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-2">提现地址（可选）</label>
+            <input
+              type="text"
+              id="withdrawAddress"
+              class="input"
+              placeholder="例如: 0x1234..."
+            />
+          </div>
+          <div class="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg text-sm">
+            <p class="text-yellow-600 dark:text-yellow-400">
+              提现将立即扣除余额。请确保您有足够的可用余额。
+            </p>
+          </div>
+          <div id="withdrawMessage" class="hidden"></div>
+          <button type="submit" class="btn btn-primary w-full">
+            确认提现
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // 获取钱包余额
+    async function fetchBalances() {
+      try {
+        const response = await fetch('/api/wallet/balances');
+        const result = await response.json();
+
+        const container = document.getElementById('balancesContainer');
+        if (!container) return;
+
+        if (result.success && result.data && result.data.length > 0) {
+          container.innerHTML = `
+            <div class="overflow-x-auto">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>币种</th>
+                    <th class="text-right">总余额</th>
+                    <th class="text-right">冻结</th>
+                    <th class="text-right">可用</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${result.data.map((balance: any) => `
+                    <tr>
+                      <td class="font-bold">${balance.currency}</td>
+                      <td class="text-right font-mono">${parseFloat(balance.balance).toFixed(8)}</td>
+                      <td class="text-right font-mono text-gray-500">${parseFloat(balance.frozen).toFixed(8)}</td>
+                      <td class="text-right font-mono text-green-600">${parseFloat(balance.available).toFixed(8)}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          `;
+        } else {
+          container.innerHTML = `
+            <div class="text-center py-8">
+              <p class="text-gray-600 dark:text-gray-400">暂无余额</p>
+              <p class="text-sm text-gray-500 dark:text-gray-500 mt-2">
+                点击"充值"按钮开始充值
+              </p>
+            </div>
+          `;
+        }
+      } catch (error) {
+        console.error('Failed to fetch balances:', error);
+        const container = document.getElementById('balancesContainer');
+        if (container) {
+          container.innerHTML = `
+            <div class="text-center py-8 text-red-600">
+              <p>加载失败，请稍后重试</p>
+            </div>
+          `;
+        }
+      }
+    }
+
+    // 获取交易历史
+    async function fetchTransactions() {
+      try {
+        const response = await fetch('/api/wallet/transactions?page=1&page_size=10');
+        const result = await response.json();
+
+        const container = document.getElementById('transactionsContainer');
+        if (!container) return;
+
+        if (result.success && result.data && result.data.items.length > 0) {
+          container.innerHTML = `
+            <div class="overflow-x-auto">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>类型</th>
+                    <th>币种</th>
+                    <th class="text-right">金额</th>
+                    <th>状态</th>
+                    <th>时间</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${result.data.items.map((tx: any) => {
+                    const typeMap: Record<string, string> = {
+                      'deposit': '充值',
+                      'withdrawal': '提现',
+                      'buy_order': '买入',
+                      'sell_order': '卖出'
+                    };
+                    const typeLabel = typeMap[tx.type] || tx.type;
+                    
+                    const amount = parseFloat(tx.amount);
+                    const isPositive = amount >= 0;
+                    
+                    return `
+                      <tr>
+                        <td>${typeLabel}</td>
+                        <td class="font-medium">${tx.currency}</td>
+                        <td class="text-right font-mono ${isPositive ? 'text-green-600' : 'text-red-600'}">
+                          ${isPositive ? '+' : ''}${amount.toFixed(8)}
+                        </td>
+                        <td>
+                          <span class="text-xs px-2 py-1 rounded-full ${
+                            tx.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                          }">
+                            ${tx.status === 'completed' ? '已完成' : '处理中'}
+                          </span>
+                        </td>
+                        <td class="text-sm text-gray-600">
+                          ${new Date(tx.created_at).toLocaleString('zh-CN')}
+                        </td>
+                      </tr>
+                    `;
+                  }).join('')}
+                </tbody>
+              </table>
+            </div>
+          `;
+        } else {
+          container.innerHTML = `
+            <div class="text-center py-8">
+              <p class="text-gray-600 dark:text-gray-400">暂无交易记录</p>
+            </div>
+          `;
+        }
+      } catch (error) {
+        console.error('Failed to fetch transactions:', error);
+      }
+    }
+
+    // 模态框控制
+    function showModal(modalId: string) {
+      const modal = document.getElementById(modalId);
+      if (modal) {
+        modal.classList.remove('hidden');
+      }
+    }
+
+    function hideModal(modalId: string) {
+      const modal = document.getElementById(modalId);
+      if (modal) {
+        modal.classList.add('hidden');
+      }
+    }
+
+    // 初始加载
+    fetchBalances();
+    fetchTransactions();
+
+    // 刷新按钮
+    document.getElementById('refreshBtn')?.addEventListener('click', () => {
+      fetchBalances();
+      fetchTransactions();
+    });
+
+    // 充值按钮
+    document.getElementById('depositBtn')?.addEventListener('click', () => {
+      showModal('depositModal');
+    });
+
+    // 提现按钮
+    document.getElementById('withdrawBtn')?.addEventListener('click', () => {
+      showModal('withdrawModal');
+    });
+
+    // 关闭模态框按钮
+    document.querySelectorAll('.close-modal').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const modal = (e.target as HTMLElement).closest('.modal');
+        if (modal) {
+          modal.classList.add('hidden');
+        }
+      });
+    });
+
+    // 充值表单提交
+    document.getElementById('depositForm')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const currency = (document.getElementById('depositCurrency') as HTMLSelectElement).value;
+      const amount = (document.getElementById('depositAmount') as HTMLInputElement).value;
+      const messageEl = document.getElementById('depositMessage');
+
+      try {
+        const response = await fetch('/api/wallet/deposit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ currency, amount }),
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          if (messageEl) {
+            messageEl.className = 'p-4 bg-green-50 text-green-600 rounded-lg';
+            messageEl.textContent = '充值成功！';
+            messageEl.classList.remove('hidden');
+          }
+          
+          setTimeout(() => {
+            hideModal('depositModal');
+            fetchBalances();
+            fetchTransactions();
+            if (messageEl) messageEl.classList.add('hidden');
+          }, 1500);
+        } else {
+          if (messageEl) {
+            messageEl.className = 'p-4 bg-red-50 text-red-600 rounded-lg';
+            messageEl.textContent = result.error?.message || '充值失败';
+            messageEl.classList.remove('hidden');
+          }
+        }
+      } catch (error) {
+        if (messageEl) {
+          messageEl.className = 'p-4 bg-red-50 text-red-600 rounded-lg';
+          messageEl.textContent = '网络错误，请重试';
+          messageEl.classList.remove('hidden');
+        }
+      }
+    });
+
+    // 提现表单提交
+    document.getElementById('withdrawForm')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const currency = (document.getElementById('withdrawCurrency') as HTMLSelectElement).value;
+      const amount = (document.getElementById('withdrawAmount') as HTMLInputElement).value;
+      const address = (document.getElementById('withdrawAddress') as HTMLInputElement).value;
+      const messageEl = document.getElementById('withdrawMessage');
+
+      try {
+        const response = await fetch('/api/wallet/withdraw', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ currency, amount, address }),
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          if (messageEl) {
+            messageEl.className = 'p-4 bg-green-50 text-green-600 rounded-lg';
+            messageEl.textContent = '提现成功！';
+            messageEl.classList.remove('hidden');
+          }
+          
+          setTimeout(() => {
+            hideModal('withdrawModal');
+            fetchBalances();
+            fetchTransactions();
+            if (messageEl) messageEl.classList.add('hidden');
+          }, 1500);
+        } else {
+          if (messageEl) {
+            messageEl.className = 'p-4 bg-red-50 text-red-600 rounded-lg';
+            messageEl.textContent = result.error?.message || '提现失败';
+            messageEl.classList.remove('hidden');
+          }
+        }
+      } catch (error) {
+        if (messageEl) {
+          messageEl.className = 'p-4 bg-red-50 text-red-600 rounded-lg';
+          messageEl.textContent = '网络错误，请重试';
+          messageEl.classList.remove('hidden');
+        }
+      }
+    });
+  </script>
+
+  <style>
+    .modal {
+      @apply fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4;
+    }
+
+    .modal-content {
+      @apply bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full max-h-[90vh] overflow-y-auto;
+    }
+  </style>
+</MainLayout>

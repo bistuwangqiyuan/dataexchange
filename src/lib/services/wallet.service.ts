@@ -1,308 +1,306 @@
 /**
  * Wallet Service
  * 
- * 处理钱包相关业务逻辑
+ * 处理钱包余额查询、充值、提现等业务逻辑
  */
 
-import { createServerClient } from '@/lib/supabase/client';
+import { createAdminClient, createServerClient } from '@/lib/supabase/client';
 import { logger } from '@/lib/utils/logger';
-import { decimal, hasSufficientBalance, toDbString } from '@/lib/utils/decimal';
-import type { Wallet, WalletTransaction } from '@/types/database.types';
-import type { WalletBalance } from '@/types/api.types';
+import Decimal from 'decimal.js';
+import type { WalletBalance, DepositRequest, WithdrawRequest } from '@/types/api.types';
 
 /**
  * 获取用户所有钱包余额
  */
-export async function getUserWallets(userId: string): Promise<WalletBalance[]> {
+export async function getAllWalletBalances(userId: string): Promise<WalletBalance[]> {
   const supabase = createServerClient();
 
-  logger.dbQuery('SELECT', 'wallets', { userId });
+  logger.info('Fetching wallet balances', { userId });
 
-  const { data, error } = await supabase
+  const { data: wallets, error } = await supabase
     .from('wallets')
     .select('*')
-    .eq('user_id', userId);
+    .eq('user_id', userId)
+    .order('currency', { ascending: true });
 
   if (error) {
-    logger.error('Failed to get user wallets', error);
-    throw new Error('Failed to retrieve wallet balances');
+    logger.error('Failed to fetch wallet balances', error);
+    throw new Error('Failed to fetch wallet balances');
   }
 
-  return data.map(wallet => ({
+  // 如果没有钱包，返回空数组
+  if (!wallets || wallets.length === 0) {
+    return [];
+  }
+
+  return wallets.map(wallet => ({
     currency: wallet.currency,
     balance: wallet.balance,
     frozen: wallet.frozen,
-    available: decimal(wallet.balance).minus(wallet.frozen).toFixed(),
+    available: new Decimal(wallet.balance).minus(wallet.frozen).toString(),
   }));
 }
 
 /**
- * 获取指定币种的钱包
+ * 获取指定币种余额
  */
-export async function getWalletByCurrency(
+export async function getWalletBalance(
   userId: string,
   currency: string
-): Promise<Wallet | null> {
+): Promise<WalletBalance | null> {
   const supabase = createServerClient();
 
-  const { data, error } = await supabase
+  const { data: wallet, error } = await supabase
     .from('wallets')
     .select('*')
     .eq('user_id', userId)
     .eq('currency', currency)
     .single();
 
-  if (error) {
-    if (error.code === 'PGRST116') {
-      return null; // 钱包不存在
-    }
-    logger.error('Failed to get wallet', error);
-    throw new Error('Failed to retrieve wallet');
+  if (error || !wallet) {
+    return null;
   }
 
-  return data;
+  return {
+    currency: wallet.currency,
+    balance: wallet.balance,
+    frozen: wallet.frozen,
+    available: new Decimal(wallet.balance).minus(wallet.frozen).toString(),
+  };
 }
 
 /**
- * 创建钱包（如果不存在）
- */
-export async function ensureWalletExists(
-  userId: string,
-  currency: string
-): Promise<Wallet> {
-  const existing = await getWalletByCurrency(userId, currency);
-
-  if (existing) {
-    return existing;
-  }
-
-  const supabase = createServerClient();
-
-  logger.dbQuery('INSERT', 'wallets', { userId, currency });
-
-  const { data, error } = await supabase
-    .from('wallets')
-    .insert({
-      user_id: userId,
-      currency,
-      balance: '0',
-      frozen: '0',
-    })
-    .select()
-    .single();
-
-  if (error) {
-    logger.error('Failed to create wallet', error);
-    throw new Error('Failed to create wallet');
-  }
-
-  return data;
-}
-
-/**
- * 充值（模拟）
+ * 模拟充值
  */
 export async function depositFunds(
   userId: string,
-  currency: string,
-  amount: string
-): Promise<WalletTransaction> {
-  const supabase = createServerClient();
+  depositData: DepositRequest
+): Promise<void> {
+  const supabase = createAdminClient();
 
-  // 确保钱包存在
-  const wallet = await ensureWalletExists(userId, currency);
+  logger.info('Processing deposit', { userId, depositData });
 
-  logger.info('Simulated deposit', { userId, currency, amount });
+  // 验证金额
+  const amount = new Decimal(depositData.amount);
+  if (amount.lte(0)) {
+    throw new Error('Deposit amount must be greater than zero');
+  }
 
-  // 创建充值记录
-  const { data: transaction, error: txError } = await supabase
-    .from('wallet_transactions')
-    .insert({
-      wallet_id: wallet.id,
-      user_id: userId,
-      type: 'deposit',
-      currency,
-      amount,
-      status: 'completed', // 模拟模式直接完成
-    })
-    .select()
-    .single();
+  // 验证币种
+  const validCurrencies = ['BTC', 'ETH', 'USDT', 'BNB', 'SOL'];
+  if (!validCurrencies.includes(depositData.currency)) {
+    throw new Error('Invalid currency');
+  }
 
-  if (txError) {
-    logger.error('Failed to create deposit transaction', txError);
+  try {
+    // 1. 获取或创建钱包
+    const { data: wallet } = await supabase
+      .from('wallets')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('currency', depositData.currency)
+      .single();
+
+    if (wallet) {
+      // 更新现有钱包余额
+      const newBalance = new Decimal(wallet.balance).plus(amount);
+      await supabase
+        .from('wallets')
+        .update({ balance: newBalance.toString() })
+        .eq('user_id', userId)
+        .eq('currency', depositData.currency);
+    } else {
+      // 创建新钱包
+      await supabase
+        .from('wallets')
+        .insert({
+          user_id: userId,
+          currency: depositData.currency,
+          balance: amount.toString(),
+          frozen: '0',
+        });
+    }
+
+    // 2. 记录充值历史
+    await supabase
+      .from('wallet_transactions')
+      .insert({
+        user_id: userId,
+        currency: depositData.currency,
+        amount: amount.toString(),
+        type: 'deposit',
+        status: 'completed',
+        description: '模拟充值',
+      });
+
+    logger.info('Deposit completed', { userId, amount: amount.toString(), currency: depositData.currency });
+  } catch (error) {
+    logger.error('Deposit failed', error);
     throw new Error('Failed to process deposit');
   }
-
-  // 更新钱包余额
-  const newBalance = decimal(wallet.balance).plus(amount);
-  const { error: updateError } = await supabase
-    .from('wallets')
-    .update({ balance: toDbString(newBalance) })
-    .eq('id', wallet.id);
-
-  if (updateError) {
-    logger.error('Failed to update wallet balance', updateError);
-    throw new Error('Failed to update balance');
-  }
-
-  logger.info('Deposit completed', { userId, currency, amount });
-
-  return transaction;
 }
 
 /**
- * 提现（模拟）
+ * 申请提现
  */
 export async function withdrawFunds(
   userId: string,
-  currency: string,
-  amount: string
-): Promise<WalletTransaction> {
-  const supabase = createServerClient();
+  withdrawData: WithdrawRequest
+): Promise<void> {
+  const supabase = createAdminClient();
 
-  // 获取钱包
-  const wallet = await getWalletByCurrency(userId, currency);
+  logger.info('Processing withdrawal', { userId, withdrawData });
 
-  if (!wallet) {
-    throw new Error(`Wallet not found for currency: ${currency}`);
+  // 验证金额
+  const amount = new Decimal(withdrawData.amount);
+  if (amount.lte(0)) {
+    throw new Error('Withdrawal amount must be greater than zero');
   }
 
-  // 检查余额
-  const available = decimal(wallet.balance).minus(wallet.frozen);
-  if (!hasSufficientBalance(available, amount)) {
-    throw new Error('Insufficient balance');
+  // 验证币种
+  const validCurrencies = ['BTC', 'ETH', 'USDT', 'BNB', 'SOL'];
+  if (!validCurrencies.includes(withdrawData.currency)) {
+    throw new Error('Invalid currency');
   }
 
-  logger.info('Simulated withdrawal', { userId, currency, amount });
+  try {
+    // 1. 检查余额
+    const { data: wallet } = await supabase
+      .from('wallets')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('currency', withdrawData.currency)
+      .single();
 
-  // 创建提现记录
-  const { data: transaction, error: txError } = await supabase
-    .from('wallet_transactions')
-    .insert({
-      wallet_id: wallet.id,
-      user_id: userId,
-      type: 'withdrawal',
-      currency,
-      amount,
-      status: 'completed', // 模拟模式直接完成
-    })
-    .select()
-    .single();
+    if (!wallet) {
+      throw new Error('Wallet not found');
+    }
 
-  if (txError) {
-    logger.error('Failed to create withdrawal transaction', txError);
-    throw new Error('Failed to process withdrawal');
+    const availableBalance = new Decimal(wallet.balance).minus(wallet.frozen);
+    if (availableBalance.lt(amount)) {
+      throw new Error('Insufficient balance');
+    }
+
+    // 2. 扣除余额
+    const newBalance = new Decimal(wallet.balance).minus(amount);
+    await supabase
+      .from('wallets')
+      .update({ balance: newBalance.toString() })
+      .eq('user_id', userId)
+      .eq('currency', withdrawData.currency);
+
+    // 3. 记录提现历史
+    await supabase
+      .from('wallet_transactions')
+      .insert({
+        user_id: userId,
+        currency: withdrawData.currency,
+        amount: amount.neg().toString(), // 负数表示提现
+        type: 'withdrawal',
+        status: 'completed',
+        description: `模拟提现${withdrawData.address ? ` 到地址 ${withdrawData.address}` : ''}`,
+      });
+
+    logger.info('Withdrawal completed', { userId, amount: amount.toString(), currency: withdrawData.currency });
+  } catch (error) {
+    logger.error('Withdrawal failed', error);
+    throw error;
   }
-
-  // 更新钱包余额
-  const newBalance = decimal(wallet.balance).minus(amount);
-  const { error: updateError } = await supabase
-    .from('wallets')
-    .update({ balance: toDbString(newBalance) })
-    .eq('id', wallet.id);
-
-  if (updateError) {
-    logger.error('Failed to update wallet balance', updateError);
-    throw new Error('Failed to update balance');
-  }
-
-  logger.info('Withdrawal completed', { userId, currency, amount });
-
-  return transaction;
 }
 
 /**
- * 冻结资金（下单时）
+ * 查询钱包交易历史
  */
-export async function freezeFunds(
+export async function getWalletTransactions(
   userId: string,
-  currency: string,
-  amount: string
-): Promise<void> {
+  options?: {
+    currency?: string;
+    type?: 'deposit' | 'withdrawal' | 'buy_order' | 'sell_order';
+    page?: number;
+    page_size?: number;
+  }
+): Promise<{ transactions: any[]; total: number }> {
   const supabase = createServerClient();
 
-  const wallet = await getWalletByCurrency(userId, currency);
+  let query = supabase
+    .from('wallet_transactions')
+    .select('*', { count: 'exact' })
+    .eq('user_id', userId);
 
-  if (!wallet) {
-    throw new Error(`Wallet not found for currency: ${currency}`);
+  if (options?.currency) {
+    query = query.eq('currency', options.currency);
   }
 
-  const available = decimal(wallet.balance).minus(wallet.frozen);
-  if (!hasSufficientBalance(available, amount)) {
-    throw new Error('Insufficient balance to freeze');
+  if (options?.type) {
+    query = query.eq('type', options.type);
   }
 
-  const newFrozen = decimal(wallet.frozen).plus(amount);
+  const page = options?.page || 1;
+  const pageSize = options?.page_size || 20;
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
 
-  const { error } = await supabase
-    .from('wallets')
-    .update({ frozen: toDbString(newFrozen) })
-    .eq('id', wallet.id);
+  query = query
+    .range(from, to)
+    .order('created_at', { ascending: false });
+
+  const { data: transactions, error, count } = await query;
 
   if (error) {
-    logger.error('Failed to freeze funds', error);
-    throw new Error('Failed to freeze funds');
+    logger.error('Failed to fetch wallet transactions', error);
+    throw new Error('Failed to fetch wallet transactions');
   }
 
-  logger.debug('Funds frozen', { userId, currency, amount });
+  return {
+    transactions: transactions || [],
+    total: count || 0,
+  };
 }
 
 /**
- * 解冻资金（取消订单时）
+ * 计算总资产价值（以USDT计）
  */
-export async function unfreezeFunds(
-  userId: string,
-  currency: string,
-  amount: string
-): Promise<void> {
+export async function getTotalAssetValue(userId: string): Promise<string> {
   const supabase = createServerClient();
 
-  const wallet = await getWalletByCurrency(userId, currency);
-
-  if (!wallet) {
-    throw new Error(`Wallet not found for currency: ${currency}`);
-  }
-
-  const newFrozen = decimal(wallet.frozen).minus(amount);
-
-  if (newFrozen.lt(0)) {
-    throw new Error('Cannot unfreeze more than frozen amount');
-  }
-
-  const { error } = await supabase
+  // 获取所有钱包
+  const { data: wallets } = await supabase
     .from('wallets')
-    .update({ frozen: toDbString(newFrozen) })
-    .eq('id', wallet.id);
-
-  if (error) {
-    logger.error('Failed to unfreeze funds', error);
-    throw new Error('Failed to unfreeze funds');
-  }
-
-  logger.debug('Funds unfrozen', { userId, currency, amount });
-}
-
-/**
- * 获取钱包交易历史
- */
-export async function getWalletTransactionHistory(
-  userId: string,
-  limit = 50
-): Promise<WalletTransaction[]> {
-  const supabase = createServerClient();
-
-  const { data, error } = await supabase
-    .from('wallet_transactions')
     .select('*')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false })
-    .limit(limit);
+    .eq('user_id', userId);
 
-  if (error) {
-    logger.error('Failed to get transaction history', error);
-    throw new Error('Failed to retrieve transaction history');
+  if (!wallets || wallets.length === 0) {
+    return '0';
   }
 
-  return data;
-}
+  // 获取市场价格
+  const { data: prices } = await supabase
+    .from('market_prices')
+    .select('*');
 
+  if (!prices) {
+    return '0';
+  }
+
+  // 计算总价值
+  let totalValue = new Decimal(0);
+
+  for (const wallet of wallets) {
+    const balance = new Decimal(wallet.balance);
+
+    if (wallet.currency === 'USDT') {
+      totalValue = totalValue.plus(balance);
+    } else {
+      // 找到对应的交易对价格
+      const tradingPair = `${wallet.currency}/USDT`;
+      const price = prices.find(p => p.trading_pair === tradingPair);
+
+      if (price) {
+        const value = balance.mul(price.price);
+        totalValue = totalValue.plus(value);
+      }
+    }
+  }
+
+  return totalValue.toFixed(2);
+}

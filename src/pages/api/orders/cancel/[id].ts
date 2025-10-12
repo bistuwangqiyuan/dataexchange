@@ -4,24 +4,32 @@
  */
 
 import type { APIRoute } from 'astro';
-import { requireAuth } from '@/lib/services/auth.service';
 import { cancelOrder } from '@/lib/services/order.service';
-import { successResponse, errorResponse, unauthorizedResponse } from '@/lib/utils/api-response';
+import { successResponse, errorResponse } from '@/lib/utils/api-response';
 import { logger } from '@/lib/utils/logger';
 import { ErrorCode } from '@/types/api.types';
+import { getCurrentUser } from '@/lib/services/auth.service';
 
 export const prerender = false;
 
 export const POST: APIRoute = async ({ params }) => {
   try {
     // 验证用户登录
-    const user = await requireAuth();
-
-    const { id } = params;
-    
-    if (!id) {
+    const user = await getCurrentUser();
+    if (!user) {
       return new Response(
-        JSON.stringify(errorResponse(ErrorCode.INVALID_INPUT, 'Order ID is required')),
+        JSON.stringify(errorResponse(ErrorCode.UNAUTHORIZED, 'Please login first')),
+        {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    const orderId = params.id;
+    if (!orderId) {
+      return new Response(
+        JSON.stringify(errorResponse(ErrorCode.REQUIRED_FIELD, 'Order ID is required')),
         {
           status: 400,
           headers: { 'Content-Type': 'application/json' },
@@ -29,51 +37,41 @@ export const POST: APIRoute = async ({ params }) => {
       );
     }
 
-    await cancelOrder(user.id, id);
+    // 取消订单
+    await cancelOrder(user.id, orderId);
 
-    return new Response(JSON.stringify(successResponse({ message: 'Order cancelled successfully' })), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    logger.info('Order cancelled via API', { userId: user.id, orderId });
+
+    return new Response(
+      JSON.stringify(successResponse({ message: 'Order cancelled successfully' })),
+      {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
   } catch (error) {
     logger.error('Cancel order endpoint error', error);
-    
-    if (error instanceof Error && error.message.includes('Unauthorized')) {
-      return new Response(JSON.stringify(unauthorizedResponse()), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-    
-    if (error instanceof Error && error.message.includes('Order not found')) {
-      return new Response(
-        JSON.stringify(errorResponse(ErrorCode.ORDER_NOT_FOUND, error.message)),
-        {
-          status: 404,
-          headers: { 'Content-Type': 'application/json' },
-        }
-      );
-    }
-    
-    if (error instanceof Error && error.message.includes('Cannot cancel')) {
-      return new Response(
-        JSON.stringify(errorResponse(ErrorCode.CANNOT_CANCEL_ORDER, error.message)),
-        {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
-        }
-      );
-    }
-    
+
     const message = error instanceof Error ? error.message : 'Failed to cancel order';
-    
+
+    // 判断错误类型
+    let errorCode = ErrorCode.INTERNAL_ERROR;
+    let statusCode = 500;
+
+    if (message.includes('not found')) {
+      errorCode = ErrorCode.ORDER_NOT_FOUND;
+      statusCode = 404;
+    } else if (message.includes('cannot be cancelled') || message.includes('Only pending')) {
+      errorCode = ErrorCode.CANNOT_CANCEL_ORDER;
+      statusCode = 400;
+    }
+
     return new Response(
-      JSON.stringify(errorResponse(ErrorCode.INTERNAL_ERROR, message)),
+      JSON.stringify(errorResponse(errorCode, message)),
       {
-        status: 500,
+        status: statusCode,
         headers: { 'Content-Type': 'application/json' },
       }
     );
   }
 };
-

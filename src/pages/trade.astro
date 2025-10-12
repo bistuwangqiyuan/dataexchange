@@ -1,28 +1,122 @@
 ---
 /**
  * Trade Page
- * 交易页面
+ * 交易页面 - 包含行情图表、交易表单和订单列表
  */
 
 import MainLayout from '@/layouts/MainLayout.astro';
+import OrderForm from '@/components/trading/OrderForm';
+import OrderList from '@/components/trading/OrderList';
 ---
 
 <MainLayout title="交易 - CryptoEx">
   <div class="container py-8">
-    <h1 class="text-4xl font-bold mb-8">交易中心</h1>
-    
-    <div class="card text-center py-12">
-      <svg class="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-      </svg>
-      <h2 class="text-2xl font-bold mb-2">交易功能开发中</h2>
-      <p class="text-gray-600 dark:text-gray-400 mb-6">
-        完整的交易界面即将上线
+    <div class="mb-6">
+      <h1 class="text-3xl font-bold mb-2">现货交易</h1>
+      <p class="text-gray-600 dark:text-gray-400">
+        买卖加密货币，支持市价单和限价单
       </p>
-      <a href="/markets" class="btn btn-primary">
-        查看市场行情
+    </div>
+
+    <!-- 交易对选择和当前价格 -->
+    <div class="card mb-6" id="marketInfo">
+      <div class="p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-2xl font-bold" id="tradingPairDisplay">BTC/USDT</h2>
+            <p class="text-sm text-gray-600 dark:text-gray-400">比特币 / 泰达币</p>
+          </div>
+          <div class="text-right">
+            <p class="text-3xl font-bold" id="currentPriceDisplay">加载中...</p>
+            <p class="text-sm" id="priceChangeDisplay">24h涨跌幅: --</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 交易区域 -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+      <!-- 左侧：图表区域（简化版） -->
+      <div class="lg:col-span-2">
+        <div class="card">
+          <div class="p-6">
+            <h3 class="text-xl font-bold mb-4">价格走势</h3>
+            <div id="chartPlaceholder" class="h-96 flex items-center justify-center bg-gray-50 dark:bg-gray-800 rounded-lg">
+              <p class="text-gray-500 dark:text-gray-400">图表功能开发中</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 右侧：交易表单 -->
+      <div>
+        <OrderForm 
+          client:load
+          tradingPair="BTC/USDT"
+          currentPrice="0"
+        />
+      </div>
+    </div>
+
+    <!-- 当前委托订单 -->
+    <OrderList client:load />
+
+    <!-- 订单历史链接 -->
+    <div class="mt-6 text-center">
+      <a href="/orders" class="text-primary-600 hover:text-primary-700 font-medium">
+        查看完整订单历史 →
       </a>
     </div>
   </div>
-</MainLayout>
 
+  <script>
+    // 获取市场价格
+    async function fetchMarketPrice() {
+      try {
+        const response = await fetch('/api/market/tickers');
+        const result = await response.json();
+
+        if (result.success && result.data) {
+          const btcTicker = result.data.find((t: any) => t.trading_pair === 'BTC/USDT');
+          
+          if (btcTicker) {
+            // 更新价格显示
+            const priceDisplay = document.getElementById('currentPriceDisplay');
+            const changeDisplay = document.getElementById('priceChangeDisplay');
+            
+            if (priceDisplay) {
+              priceDisplay.textContent = `$${parseFloat(btcTicker.price).toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}`;
+            }
+
+            if (changeDisplay) {
+              const change = parseFloat(btcTicker.change_24h);
+              const changePercent = (change * 100).toFixed(2);
+              const changeClass = change >= 0 ? 'text-green-600' : 'text-red-600';
+              const changeIcon = change >= 0 ? '▲' : '▼';
+              
+              changeDisplay.textContent = `24h涨跌幅: ${changeIcon} ${Math.abs(parseFloat(changePercent))}%`;
+              changeDisplay.className = `text-sm ${changeClass}`;
+            }
+
+            // 更新OrderForm的价格（通过重新渲染）
+            const orderForm = document.querySelector('[data-trading-pair="BTC/USDT"]');
+            if (orderForm) {
+              orderForm.setAttribute('data-current-price', btcTicker.price);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch market price:', error);
+      }
+    }
+
+    // 初始加载
+    fetchMarketPrice();
+
+    // 每5秒更新价格
+    setInterval(fetchMarketPrice, 5000);
+  </script>
+</MainLayout>

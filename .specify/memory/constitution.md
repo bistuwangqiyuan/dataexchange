@@ -1,22 +1,24 @@
 <!--
 Sync Impact Report:
-- Version: 1.0.0 (Initial constitution creation)
-- Modified principles: N/A (Initial version)
-- Added sections: All core sections
+- Version change: 1.0.0 → 1.1.0
+- Modified principles: N/A
+- Added sections: Principle 5 (User Guidance & Accessibility)
 - Removed sections: N/A
-- Templates status:
-  ✅ constitution.md created
-  ✅ plan-template.md will be created
-  ✅ spec-template.md will be created
-  ✅ tasks-template.md will be created
-- Follow-up TODOs: Project name to be defined
+- Templates requiring updates:
+  ✅ constitution.md updated
+  ⚠ plan-template.md: Should verify "Constitution Check" section includes Principle 5
+  ⚠ spec-template.md: No changes required (principle is implementation-focused)
+  ⚠ tasks-template.md: Consider adding user guidance task types
+- Follow-up TODOs:
+  - Review implementation plans to ensure user guidance is included in task breakdown
+  - Update any existing deployment/setup guides to include clickable links
 -->
 
 # DataExchange Project Constitution
 
-**Version**: 1.0.0  
+**Version**: 1.1.0  
 **Ratified**: 2025-10-11  
-**Last Amended**: 2025-10-11
+**Last Amended**: 2025-10-12
 
 ## Purpose
 
@@ -83,6 +85,51 @@ This constitution defines the core principles, technical standards, and governan
 - 开发过程中发现的子任务添加到 README.md 的 "Discovered During Work" 部分
 - 完成的任务立即在 README.md 中标记为完成
 - 重大更新必须同步更新 README.md
+
+### Principle 5: 为用户提供完整详细易于理解且带有链接可直接点击操作的提示
+
+**Rule**: 所有用户面向的指引、文档和提示必须包含完整、详细且易于理解的说明，
+并提供可直接点击的链接以便用户立即执行操作。
+
+**Rationale**: 降低用户的认知负担和操作难度，提升用户体验和工作效率。
+清晰的指引和便捷的链接可以：
+- 减少用户的困惑和挫折感
+- 加快任务完成速度
+- 降低技术门槛，让非技术用户也能顺利操作
+- 减少支持请求和文档查阅时间
+- 提高文档的可操作性和实用价值
+
+**Implementation**:
+- 所有错误消息必须包含：问题描述、原因说明、解决方案链接
+- 部署指南必须包含可点击的Dashboard链接和CLI命令示例
+- 配置说明必须包含具体的步骤编号和截图（如需）
+- API文档必须包含交互式示例和测试端点链接
+- 设置指南必须提供一键复制的命令和配置文件模板
+- README.md中的所有操作步骤必须包含相关文档链接
+- 终端输出和日志消息应包含下一步操作的建议和链接
+- 用户提示使用清晰的格式：问题 → 原因 → 解决方案（带链接）
+
+**Examples**:
+```markdown
+✅ Good:
+> ❌ 部署失败：环境变量未配置
+> 
+> **原因**: SUPABASE_URL 和 SUPABASE_ANON_KEY 未设置
+> 
+> **解决方案**:
+> 1. 访问 [Netlify环境变量设置](https://app.netlify.com/sites/YOUR_SITE/settings/env)
+> 2. 添加以下变量：
+>    ```
+>    SUPABASE_URL=your_url
+>    SUPABASE_ANON_KEY=your_key
+>    ```
+> 3. 重新部署：`netlify deploy --prod`
+> 
+> 📖 详细文档：[环境配置指南](docs/ENV_SETUP.md)
+
+❌ Bad:
+> 部署失败，请配置环境变量
+```
 
 ---
 

@@ -1,10 +1,10 @@
 /**
- * GET /api/wallet/balances
- * 查询用户所有钱包余额
+ * GET /api/orders/active
+ * 查询当前委托订单（pending状态）
  */
 
 import type { APIRoute } from 'astro';
-import { getAllWalletBalances } from '@/lib/services/wallet.service';
+import { getActiveOrders } from '@/lib/services/order.service';
 import { successResponse, errorResponse } from '@/lib/utils/api-response';
 import { logger } from '@/lib/utils/logger';
 import { ErrorCode } from '@/types/api.types';
@@ -26,20 +26,20 @@ export const GET: APIRoute = async () => {
       );
     }
 
-    // 获取钱包余额
-    const balances = await getAllWalletBalances(user.id);
+    // 获取活跃订单
+    const orders = await getActiveOrders(user.id);
 
-    return new Response(JSON.stringify(successResponse(balances)), {
+    return new Response(JSON.stringify(successResponse(orders)), {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
-        'Cache-Control': 'no-cache',
+        'Cache-Control': 'no-cache', // 订单状态应该实时查询
       },
     });
   } catch (error) {
-    logger.error('Get wallet balances endpoint error', error);
+    logger.error('Get active orders endpoint error', error);
 
-    const message = error instanceof Error ? error.message : 'Failed to fetch wallet balances';
+    const message = error instanceof Error ? error.message : 'Failed to fetch active orders';
 
     return new Response(
       JSON.stringify(errorResponse(ErrorCode.INTERNAL_ERROR, message)),
@@ -50,3 +50,4 @@ export const GET: APIRoute = async () => {
     );
   }
 };
+

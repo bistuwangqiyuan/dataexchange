@@ -1,20 +1,19 @@
 /**
- * GET /api/orders/history
- * 查询订单历史
+ * GET /api/wallet/transactions
+ * 查询钱包交易历史
  * 
  * Query parameters:
- * - trading_pair: 交易对筛选（可选）
- * - status: 订单状态筛选（可选）
+ * - currency: 币种筛选（可选）
+ * - type: 交易类型筛选（可选）
  * - page: 页码（默认1）
  * - page_size: 每页数量（默认20）
  */
 
 import type { APIRoute } from 'astro';
-import { getOrderHistory } from '@/lib/services/order.service';
+import { getWalletTransactions } from '@/lib/services/wallet.service';
 import { successResponse, errorResponse } from '@/lib/utils/api-response';
 import { logger } from '@/lib/utils/logger';
 import { ErrorCode } from '@/types/api.types';
-import type { OrderStatus } from '@/types/database.types';
 import { getCurrentUser } from '@/lib/services/auth.service';
 
 export const prerender = false;
@@ -34,22 +33,22 @@ export const GET: APIRoute = async ({ url }) => {
     }
 
     // 解析查询参数
-    const trading_pair = url.searchParams.get('trading_pair') || undefined;
-    const status = url.searchParams.get('status') as OrderStatus | undefined;
+    const currency = url.searchParams.get('currency') || undefined;
+    const type = url.searchParams.get('type') as any || undefined;
     const page = parseInt(url.searchParams.get('page') || '1');
     const page_size = parseInt(url.searchParams.get('page_size') || '20');
 
-    // 获取订单历史
-    const result = await getOrderHistory(user.id, {
-      trading_pair,
-      status,
+    // 获取交易历史
+    const result = await getWalletTransactions(user.id, {
+      currency,
+      type,
       page,
       page_size,
     });
 
     // 构造分页响应
     const response = {
-      items: result.orders,
+      items: result.transactions,
       total: result.total,
       page,
       page_size,
@@ -64,9 +63,9 @@ export const GET: APIRoute = async ({ url }) => {
       },
     });
   } catch (error) {
-    logger.error('Get order history endpoint error', error);
+    logger.error('Get wallet transactions endpoint error', error);
 
-    const message = error instanceof Error ? error.message : 'Failed to fetch order history';
+    const message = error instanceof Error ? error.message : 'Failed to fetch wallet transactions';
 
     return new Response(
       JSON.stringify(errorResponse(ErrorCode.INTERNAL_ERROR, message)),
@@ -77,3 +76,4 @@ export const GET: APIRoute = async ({ url }) => {
     );
   }
 };
+
