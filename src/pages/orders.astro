@@ -1,28 +1,452 @@
 ---
 /**
- * Orders Page
- * 订单页面
+ * 订单管理页面
  */
-
 import MainLayout from '@/layouts/MainLayout.astro';
 ---
 
-<MainLayout title="订单 - CryptoEx">
-  <div class="container py-8">
-    <h1 class="text-4xl font-bold mb-8">我的订单</h1>
-    
-    <div class="card text-center py-12">
-      <svg class="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-      </svg>
-      <h2 class="text-2xl font-bold mb-2">订单功能开发中</h2>
-      <p class="text-gray-600 dark:text-gray-400 mb-6">
-        订单管理界面即将上线
-      </p>
-      <a href="/markets" class="btn btn-primary">
-        查看市场行情
-      </a>
+<MainLayout 
+  title="Order Management - Track Your Crypto Trades"
+  description="View and manage your cryptocurrency orders. Track active orders, review order history, and monitor your trading activity across all markets."
+  keywords="order management, crypto orders, trading history, active orders, order tracking"
+  noindex={true}
+>
+  <div class="min-h-screen bg-gray-50 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <!-- 页头 -->
+      <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900">My Orders</h1>
+        <p class="mt-2 text-sm text-gray-600">
+          View and manage your trading orders
+        </p>
+      </div>
+
+      <!-- Tabs -->
+      <div class="mb-6">
+        <nav class="flex space-x-4" aria-label="Tabs">
+          <button
+            id="tab-active"
+            class="tab-button active px-4 py-2 text-sm font-medium rounded-md"
+            data-tab="active"
+          >
+            Active Orders
+          </button>
+          <button
+            id="tab-history"
+            class="tab-button px-4 py-2 text-sm font-medium rounded-md"
+            data-tab="history"
+          >
+            Order History
+          </button>
+          <button
+            id="tab-transactions"
+            class="tab-button px-4 py-2 text-sm font-medium rounded-md"
+            data-tab="transactions"
+          >
+            Transaction History
+          </button>
+        </nav>
+      </div>
+
+      <!-- 筛选器 -->
+      <div class="mb-6 flex items-center space-x-4">
+        <select
+          id="trading-pair-filter"
+          class="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        >
+          <option value="">All Trading Pairs</option>
+          <option value="BTC/USDT">BTC/USDT</option>
+          <option value="ETH/USDT">ETH/USDT</option>
+          <option value="BNB/USDT">BNB/USDT</option>
+        </select>
+
+        <select
+          id="side-filter"
+          class="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        >
+          <option value="">All Sides</option>
+          <option value="buy">Buy</option>
+          <option value="sell">Sell</option>
+        </select>
+
+        <button
+          id="filter-button"
+          class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        >
+          Apply Filters
+        </button>
+      </div>
+
+      <!-- Active Orders -->
+      <div id="active-orders-section" class="tab-content">
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Time</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trading Pair</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Side</th>
+                  <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Price</th>
+                  <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Quantity</th>
+                  <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Filled</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                  <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Action</th>
+                </tr>
+              </thead>
+              <tbody id="active-orders-table" class="bg-white divide-y divide-gray-200">
+                <tr>
+                  <td colspan="9" class="px-6 py-8 text-center text-gray-500">
+                    Loading active orders...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Order History -->
+      <div id="history-orders-section" class="tab-content hidden">
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Time</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trading Pair</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Side</th>
+                  <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Price</th>
+                  <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Quantity</th>
+                  <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Filled</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                </tr>
+              </thead>
+              <tbody id="history-orders-table" class="bg-white divide-y divide-gray-200">
+                <tr>
+                  <td colspan="8" class="px-6 py-8 text-center text-gray-500">
+                    Loading order history...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Transaction History -->
+      <div id="transactions-section" class="tab-content hidden">
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Time</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trading Pair</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Side</th>
+                  <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Price</th>
+                  <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Quantity</th>
+                  <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Fee</th>
+                  <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total</th>
+                </tr>
+              </thead>
+              <tbody id="transactions-table" class="bg-white divide-y divide-gray-200">
+                <tr>
+                  <td colspan="7" class="px-6 py-8 text-center text-gray-500">
+                    Loading transactions...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </MainLayout>
 
+<style>
+  .tab-button {
+    @apply text-gray-500 hover:text-gray-700;
+  }
+
+  .tab-button.active {
+    @apply bg-indigo-600 text-white;
+  }
+</style>
+
+<script>
+  const getToken = () => localStorage.getItem('access_token');
+
+  // Tab 切换
+  const tabs = document.querySelectorAll('.tab-button');
+  const tabContents = document.querySelectorAll('.tab-content');
+
+  tabs.forEach((tab) => {
+    tab.addEventListener('click', () => {
+      const tabName = tab.getAttribute('data-tab');
+
+      // 更新 tab 样式
+      tabs.forEach((t) => t.classList.remove('active'));
+      tab.classList.add('active');
+
+      // 显示对应内容
+      tabContents.forEach((content) => {
+        if (content.id === `${tabName}-orders-section` || content.id === `${tabName}-section`) {
+          content.classList.remove('hidden');
+        } else {
+          content.classList.add('hidden');
+        }
+      });
+
+      // 加载对应数据
+      if (tabName === 'active') {
+        loadActiveOrders();
+      } else if (tabName === 'history') {
+        loadOrderHistory();
+      } else if (tabName === 'transactions') {
+        loadTransactions();
+      }
+    });
+  });
+
+  // 加载活跃订单
+  async function loadActiveOrders() {
+    try {
+      const response = await fetch('/api/orders/active', {
+        headers: {
+          'Authorization': `Bearer ${getToken()}`,
+        },
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          window.location.href = '/login';
+          return;
+        }
+        throw new Error('Failed to load active orders');
+      }
+
+      const result = await response.json();
+      const orders = result.data;
+
+      const tbody = document.getElementById('active-orders-table')!;
+      
+      if (orders.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="9" class="px-6 py-8 text-center text-gray-500">
+              No active orders
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = orders.map((order: any) => `
+        <tr>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+            ${new Date(order.created_at).toLocaleString()}
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+            ${order.trading_pair}
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+            ${order.order_type}
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm">
+            <span class="px-2 py-1 text-xs font-semibold rounded-full ${
+              order.side === 'buy' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+            }">
+              ${order.side}
+            </span>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900">
+            ${order.price ? parseFloat(order.price).toFixed(2) : 'Market'}
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900">
+            ${parseFloat(order.quantity).toFixed(6)}
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-500">
+            ${parseFloat(order.filled_quantity).toFixed(6)}
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+            ${order.status}
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-center text-sm">
+            <button
+              onclick="cancelOrder('${order.id}')"
+              class="text-red-600 hover:text-red-900 font-medium"
+            >
+              Cancel
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    } catch (error) {
+      console.error('Error loading active orders:', error);
+    }
+  }
+
+  // 取消订单
+  (window as any).cancelOrder = async (orderId: string) => {
+    if (!confirm('Are you sure you want to cancel this order?')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/orders/cancel/${orderId}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${getToken()}`,
+        },
+      });
+
+      if (!response.ok) throw new Error('Failed to cancel order');
+
+      alert('Order cancelled successfully');
+      loadActiveOrders();
+    } catch (error) {
+      console.error('Error cancelling order:', error);
+      alert('Failed to cancel order');
+    }
+  };
+
+  // 加载历史订单
+  async function loadOrderHistory() {
+    try {
+      const response = await fetch('/api/orders/history', {
+        headers: {
+          'Authorization': `Bearer ${getToken()}`,
+        },
+      });
+
+      if (!response.ok) throw new Error('Failed to load order history');
+
+      const result = await response.json();
+      const orders = result.data.items;
+
+      const tbody = document.getElementById('history-orders-table')!;
+      
+      if (orders.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="8" class="px-6 py-8 text-center text-gray-500">
+              No order history
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = orders.map((order: any) => `
+        <tr>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+            ${new Date(order.created_at).toLocaleString()}
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+            ${order.trading_pair}
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+            ${order.order_type}
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm">
+            <span class="px-2 py-1 text-xs font-semibold rounded-full ${
+              order.side === 'buy' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+            }">
+              ${order.side}
+            </span>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900">
+            ${order.price ? parseFloat(order.price).toFixed(2) : 'Market'}
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900">
+            ${parseFloat(order.quantity).toFixed(6)}
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-500">
+            ${parseFloat(order.filled_quantity).toFixed(6)}
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm">
+            <span class="px-2 py-1 text-xs font-semibold rounded-full ${
+              order.status === 'filled' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+            }">
+              ${order.status}
+            </span>
+          </td>
+        </tr>
+      `).join('');
+    } catch (error) {
+      console.error('Error loading order history:', error);
+    }
+  }
+
+  // 加载成交记录
+  async function loadTransactions() {
+    try {
+      const response = await fetch('/api/transactions', {
+        headers: {
+          'Authorization': `Bearer ${getToken()}`,
+        },
+      });
+
+      if (!response.ok) throw new Error('Failed to load transactions');
+
+      const result = await response.json();
+      const transactions = result.data.items;
+
+      const tbody = document.getElementById('transactions-table')!;
+      
+      if (transactions.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" class="px-6 py-8 text-center text-gray-500">
+              No transactions
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = transactions.map((tx: any) => `
+        <tr>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+            ${new Date(tx.created_at).toLocaleString()}
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+            ${tx.trading_pair}
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm">
+            <span class="px-2 py-1 text-xs font-semibold rounded-full ${
+              tx.type === 'buy' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+            }">
+              ${tx.type}
+            </span>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900">
+            $${parseFloat(tx.price).toFixed(2)}
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900">
+            ${parseFloat(tx.quantity).toFixed(6)}
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-500">
+            $${parseFloat(tx.fee).toFixed(2)}
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900">
+            $${parseFloat(tx.total).toFixed(2)}
+          </td>
+        </tr>
+      `).join('');
+    } catch (error) {
+      console.error('Error loading transactions:', error);
+    }
+  }
+
+  // 页面加载时执行
+  if (!getToken()) {
+    window.location.href = '/login';
+  } else {
+    loadActiveOrders();
+  }
+</script>

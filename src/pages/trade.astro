@@ -1,28 +1,290 @@
 ---
 /**
- * Trade Page
- * 交易页面
+ * Trading Page - 交易界面
+ * 默认交易对：BTC/USDT
  */
-
 import MainLayout from '@/layouts/MainLayout.astro';
+import OrderForm from '@/components/trading/OrderForm.tsx';
+import OrderList from '@/components/trading/OrderList.tsx';
 ---
 
-<MainLayout title="交易 - CryptoEx">
-  <div class="container py-8">
-    <h1 class="text-4xl font-bold mb-8">交易中心</h1>
-    
-    <div class="card text-center py-12">
-      <svg class="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-      </svg>
-      <h2 class="text-2xl font-bold mb-2">交易功能开发中</h2>
-      <p class="text-gray-600 dark:text-gray-400 mb-6">
-        完整的交易界面即将上线
-      </p>
-      <a href="/markets" class="btn btn-primary">
-        查看市场行情
-      </a>
+<MainLayout 
+  title="Trade Cryptocurrencies - BTC, ETH & More"
+  description="Trade Bitcoin, Ethereum, and other cryptocurrencies with advanced trading tools. Real-time order book, market and limit orders, and professional charting."
+  keywords="crypto trading, bitcoin trading, ethereum trading, market orders, limit orders, trading platform, crypto exchange"
+>
+  <div class="min-h-screen bg-gray-50">
+    <!-- Trading Pair Header -->
+    <div class="bg-white border-b border-gray-200">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-6">
+            <div>
+              <h1 class="text-2xl font-bold text-gray-900" id="trading-pair">BTC/USDT</h1>
+              <p class="text-sm text-gray-500">Bitcoin / Tether</p>
+            </div>
+            <div class="border-l border-gray-300 pl-6">
+              <p class="text-sm text-gray-600">Last Price</p>
+              <p class="text-2xl font-bold" id="last-price">$0.00</p>
+            </div>
+            <div>
+              <p class="text-sm text-gray-600">24h Change</p>
+              <p class="text-lg font-semibold" id="price-change">+0.00%</p>
+            </div>
+            <div>
+              <p class="text-sm text-gray-600">24h High</p>
+              <p class="text-lg" id="high-24h">$0.00</p>
+            </div>
+            <div>
+              <p class="text-sm text-gray-600">24h Low</p>
+              <p class="text-lg" id="low-24h">$0.00</p>
+            </div>
+            <div>
+              <p class="text-sm text-gray-600">24h Volume</p>
+              <p class="text-lg" id="volume-24h">$0.00</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Trading Interface -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <!-- Order Book (Left Column) -->
+        <div class="lg:col-span-1">
+          <div class="bg-white rounded-lg shadow">
+            <div class="px-4 py-3 border-b border-gray-200">
+              <h2 class="text-sm font-semibold text-gray-900">Order Book</h2>
+            </div>
+            <div class="p-4">
+              <!-- Asks (Sell Orders) -->
+              <div class="mb-4">
+                <div class="flex justify-between text-xs text-gray-500 mb-2">
+                  <span>Price(USDT)</span>
+                  <span>Amount(BTC)</span>
+                </div>
+                <div id="orderbook-asks" class="space-y-1">
+                  <!-- Populated by JS -->
+                </div>
+              </div>
+
+              <!-- Current Price Separator -->
+              <div class="py-2 my-2 border-y border-gray-200 text-center">
+                <span class="text-lg font-bold" id="orderbook-price">$0.00</span>
+              </div>
+
+              <!-- Bids (Buy Orders) -->
+              <div>
+                <div id="orderbook-bids" class="space-y-1">
+                  <!-- Populated by JS -->
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recent Trades -->
+          <div class="mt-6 bg-white rounded-lg shadow">
+            <div class="px-4 py-3 border-b border-gray-200">
+              <h2 class="text-sm font-semibold text-gray-900">Recent Trades</h2>
+            </div>
+            <div class="p-4">
+              <div class="flex justify-between text-xs text-gray-500 mb-2">
+                <span>Price</span>
+                <span>Amount</span>
+                <span>Time</span>
+              </div>
+              <div id="recent-trades" class="space-y-1 max-h-96 overflow-y-auto">
+                <!-- Populated by JS -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chart & Orders (Middle & Right Columns) -->
+        <div class="lg:col-span-3">
+          <!-- Chart Placeholder -->
+          <div class="bg-white rounded-lg shadow mb-6">
+            <div class="px-4 py-3 border-b border-gray-200 flex justify-between items-center">
+              <h2 class="text-sm font-semibold text-gray-900">Price Chart</h2>
+              <div class="flex space-x-2">
+                <button class="px-3 py-1 text-xs font-medium bg-indigo-100 text-indigo-700 rounded">1m</button>
+                <button class="px-3 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 rounded">5m</button>
+                <button class="px-3 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 rounded">15m</button>
+                <button class="px-3 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 rounded">1h</button>
+                <button class="px-3 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 rounded">4h</button>
+                <button class="px-3 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 rounded">1d</button>
+              </div>
+            </div>
+            <div class="p-4">
+              <!-- TradingView Chart would go here -->
+              <div class="h-96 flex items-center justify-center bg-gray-50 rounded">
+                <div class="text-center">
+                  <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path>
+                  </svg>
+                  <p class="mt-2 text-sm text-gray-500">Chart will be displayed here</p>
+                  <p class="text-xs text-gray-400">TradingView integration pending</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Trading Form & Orders -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Order Form -->
+            <div class="bg-white rounded-lg shadow p-6">
+              <OrderForm client:load tradingPair="BTC/USDT" />
+            </div>
+
+            <!-- Open Orders -->
+            <div class="bg-white rounded-lg shadow">
+              <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-sm font-semibold text-gray-900">Open Orders</h2>
+              </div>
+              <div class="p-6">
+                <OrderList client:load />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </MainLayout>
 
+<script>
+  const DEFAULT_PAIR = 'BTC/USDT';
+  let currentPair = DEFAULT_PAIR;
+  let priceUpdateInterval: number;
+
+  // Get trading pair from URL or use default
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.has('pair')) {
+    currentPair = urlParams.get('pair')!.replace('-', '/').toUpperCase();
+  }
+
+  // Update trading pair display
+  document.getElementById('trading-pair')!.textContent = currentPair;
+
+  // Load price ticker
+  async function loadPriceTicker() {
+    try {
+      const pairParam = currentPair.replace('/', '-');
+      const response = await fetch(`/api/market/${pairParam}`);
+      
+      if (!response.ok) throw new Error('Failed to load ticker');
+
+      const result = await response.json();
+      const ticker = result.data;
+
+      // Update price display
+      document.getElementById('last-price')!.textContent = `$${parseFloat(ticker.price).toLocaleString()}`;
+      document.getElementById('orderbook-price')!.textContent = `$${parseFloat(ticker.price).toLocaleString()}`;
+      
+      // Update 24h change
+      const change = parseFloat(ticker.change_24h);
+      const changeElement = document.getElementById('price-change')!;
+      changeElement.textContent = `${change >= 0 ? '+' : ''}${change.toFixed(2)}%`;
+      changeElement.className = `text-lg font-semibold ${change >= 0 ? 'text-green-600' : 'text-red-600'}`;
+
+      // Update 24h high/low
+      document.getElementById('high-24h')!.textContent = `$${parseFloat(ticker.high_24h).toLocaleString()}`;
+      document.getElementById('low-24h')!.textContent = `$${parseFloat(ticker.low_24h).toLocaleString()}`;
+
+      // Update volume
+      const volume = parseFloat(ticker.volume_24h);
+      document.getElementById('volume-24h')!.textContent = formatVolume(volume);
+    } catch (error) {
+      console.error('Error loading ticker:', error);
+    }
+  }
+
+  // Load order book
+  async function loadOrderBook() {
+    try {
+      const pairParam = currentPair.replace('/', '-');
+      const response = await fetch(`/api/market/orderbook/${pairParam}`);
+      
+      if (!response.ok) throw new Error('Failed to load orderbook');
+
+      const result = await response.json();
+      const orderbook = result.data;
+
+      // Render asks (sell orders) - top 10
+      const asksDiv = document.getElementById('orderbook-asks')!;
+      asksDiv.innerHTML = orderbook.asks.slice(0, 10).map((ask: [string, string]) => {
+        const [price, amount] = ask;
+        return `
+          <div class="flex justify-between text-xs">
+            <span class="text-red-600 font-medium">${parseFloat(price).toLocaleString()}</span>
+            <span class="text-gray-600">${parseFloat(amount).toFixed(6)}</span>
+          </div>
+        `;
+      }).join('');
+
+      // Render bids (buy orders) - top 10
+      const bidsDiv = document.getElementById('orderbook-bids')!;
+      bidsDiv.innerHTML = orderbook.bids.slice(0, 10).map((bid: [string, string]) => {
+        const [price, amount] = bid;
+        return `
+          <div class="flex justify-between text-xs">
+            <span class="text-green-600 font-medium">${parseFloat(price).toLocaleString()}</span>
+            <span class="text-gray-600">${parseFloat(amount).toFixed(6)}</span>
+          </div>
+        `;
+      }).join('');
+    } catch (error) {
+      console.error('Error loading orderbook:', error);
+    }
+  }
+
+  // Simulate recent trades (since we don't have real trade history)
+  function simulateRecentTrades() {
+    const tradesDiv = document.getElementById('recent-trades')!;
+    const trades = [];
+    
+    for (let i = 0; i < 20; i++) {
+      const basePrice = 45000;
+      const price = basePrice + (Math.random() - 0.5) * 1000;
+      const amount = (Math.random() * 0.5).toFixed(6);
+      const isBuy = Math.random() > 0.5;
+      const time = new Date(Date.now() - i * 60000).toLocaleTimeString();
+      
+      trades.push(`
+        <div class="flex justify-between text-xs">
+          <span class="${isBuy ? 'text-green-600' : 'text-red-600'} font-medium">
+            ${price.toFixed(2)}
+          </span>
+          <span class="text-gray-600">${amount}</span>
+          <span class="text-gray-500">${time}</span>
+        </div>
+      `);
+    }
+    
+    tradesDiv.innerHTML = trades.join('');
+  }
+
+  function formatVolume(volume: number): string {
+    if (volume >= 1e9) return `$${(volume / 1e9).toFixed(2)}B`;
+    if (volume >= 1e6) return `$${(volume / 1e6).toFixed(2)}M`;
+    if (volume >= 1e3) return `$${(volume / 1e3).toFixed(2)}K`;
+    return `$${volume.toFixed(2)}`;
+  }
+
+  // Initialize
+  loadPriceTicker();
+  loadOrderBook();
+  simulateRecentTrades();
+
+  // Auto-refresh every 5 seconds
+  priceUpdateInterval = window.setInterval(() => {
+    loadPriceTicker();
+    loadOrderBook();
+  }, 5000);
+
+  // Cleanup on page unload
+  window.addEventListener('beforeunload', () => {
+    clearInterval(priceUpdateInterval);
+  });
+</script>

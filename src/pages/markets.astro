@@ -1,141 +1,234 @@
 ---
 /**
- * Markets Page
  * 市场行情页面
  */
-
 import MainLayout from '@/layouts/MainLayout.astro';
 ---
 
-<MainLayout title="市场行情 - CryptoEx">
-  <div class="container py-8">
-    <div class="mb-8">
-      <h1 class="text-4xl font-bold mb-2">市场行情</h1>
-      <p class="text-gray-600 dark:text-gray-400">
-        实时加密货币价格和24小时变化
-      </p>
-    </div>
+<MainLayout 
+  title="Cryptocurrency Market Prices - Live Bitcoin & Ethereum Prices"
+  description="View live cryptocurrency prices and market data for Bitcoin, Ethereum, BNB, XRP, and more. Track 24h price changes, trading volumes, and market trends in real-time."
+  keywords="cryptocurrency prices, bitcoin price, ethereum price, crypto market data, live crypto prices, BTC price, ETH price, market cap, trading volume, price charts"
+>
+  <div class="min-h-screen bg-gray-50 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <!-- 页头 -->
+      <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900">Crypto Markets</h1>
+        <p class="mt-2 text-sm text-gray-600">
+          Real-time cryptocurrency prices and charts
+        </p>
+      </div>
 
-    <!-- Loading State -->
-    <div id="loading" class="text-center py-12">
-      <div class="spinner w-12 h-12 mx-auto mb-4"></div>
-      <p class="text-gray-600 dark:text-gray-400">加载行情数据中...</p>
-    </div>
+      <!-- 搜索和筛选 -->
+      <div class="mb-6 flex items-center justify-between">
+        <div class="flex-1 max-w-lg">
+          <input
+            type="text"
+            id="search-input"
+            placeholder="Search trading pair..."
+            class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+        </div>
+        <div class="ml-4">
+          <button
+            id="refresh-button"
+            class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          >
+            🔄 Refresh
+          </button>
+        </div>
+      </div>
 
-    <!-- Error State -->
-    <div id="error" class="hidden bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 px-6 py-4 rounded-lg">
-      <p class="font-medium">加载失败</p>
-      <p class="text-sm mt-1">无法获取市场数据，请稍后重试</p>
-    </div>
+      <!-- 市场列表 -->
+      <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Trading Pair
+                </th>
+                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Last Price
+                </th>
+                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  24h Change
+                </th>
+                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  24h High
+                </th>
+                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  24h Low
+                </th>
+                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  24h Volume
+                </th>
+                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Action
+                </th>
+              </tr>
+            </thead>
+            <tbody id="markets-table" class="bg-white divide-y divide-gray-200">
+              <!-- 市场数据将通过 JS 动态插入 -->
+              <tr>
+                <td colspan="7" class="px-6 py-8 text-center text-gray-500">
+                  Loading market data...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
 
-    <!-- Markets Table -->
-    <div id="marketsTable" class="hidden card overflow-hidden">
-      <div class="overflow-x-auto">
-        <table class="table">
-          <thead>
-            <tr>
-              <th>交易对</th>
-              <th class="text-right">最新价格</th>
-              <th class="text-right">24h涨跌</th>
-              <th class="text-right">24h最高</th>
-              <th class="text-right">24h最低</th>
-              <th class="text-right">24h成交量</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody id="marketsBody">
-            <!-- 动态填充 -->
-          </tbody>
-        </table>
+      <!-- 最后更新时间 -->
+      <div class="mt-4 text-center text-sm text-gray-500">
+        Last updated: <span id="last-updated">--</span>
+        <span class="ml-4">Auto-refresh in <span id="countdown">10</span>s</span>
       </div>
     </div>
-
-    <!-- Refresh Button -->
-    <div class="mt-6 text-center">
-      <button
-        id="refreshButton"
-        class="btn btn-secondary"
-      >
-        刷新数据
-      </button>
-      <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">
-        数据每60秒自动刷新
-      </p>
-    </div>
   </div>
+</MainLayout>
 
-  <script>
-    const loading = document.getElementById('loading')!;
-    const error = document.getElementById('error')!;
-    const marketsTable = document.getElementById('marketsTable')!;
-    const marketsBody = document.getElementById('marketsBody')!;
-    const refreshButton = document.getElementById('refreshButton')!;
+<script>
+  let refreshInterval: number;
+  let countdownInterval: number;
+  let countdown = 10;
 
-    let refreshInterval: number;
-
-    async function loadMarkets() {
-      try {
-        loading.classList.remove('hidden');
-        error.classList.add('hidden');
-        marketsTable.classList.add('hidden');
-
-        const response = await fetch('/api/market/tickers');
-        const result = await response.json();
-
-        if (result.success && result.data) {
-          displayMarkets(result.data);
-          loading.classList.add('hidden');
-          marketsTable.classList.remove('hidden');
-        } else {
-          throw new Error('Failed to load markets');
-        }
-      } catch (err) {
-        console.error('Error loading markets:', err);
-        loading.classList.add('hidden');
-        error.classList.remove('hidden');
+  // 加载市场数据
+  async function loadMarkets() {
+    try {
+      const response = await fetch('/api/market/tickers');
+      
+      if (!response.ok) {
+        throw new Error('Failed to load market data');
       }
-    }
 
-    function displayMarkets(tickers: any[]) {
-      marketsBody.innerHTML = tickers.map(ticker => {
-        const change = parseFloat(ticker.change_24h);
-        const changeClass = change >= 0 ? 'price-up' : 'price-down';
-        const changeIcon = change >= 0 ? '▲' : '▼';
-        const changePercent = (change * 100).toFixed(2);
+      const result = await response.json();
+      const tickers = result.data;
 
+      // 渲染市场表格
+      const tbody = document.getElementById('markets-table')!;
+      tbody.innerHTML = tickers.map((ticker: any) => {
+        const change24h = parseFloat(ticker.change_24h);
+        const isPositive = change24h >= 0;
+        
         return `
-          <tr>
-            <td class="font-medium">${ticker.trading_pair}</td>
-            <td class="text-right font-mono">$${parseFloat(ticker.price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-            <td class="text-right font-medium ${changeClass}">
-              ${changeIcon} ${Math.abs(parseFloat(changePercent))}%
+          <tr class="hover:bg-gray-50">
+            <td class="px-6 py-4 whitespace-nowrap">
+              <div class="flex items-center">
+                <div class="text-sm font-medium text-gray-900">${ticker.trading_pair}</div>
+              </div>
             </td>
-            <td class="text-right font-mono">$${parseFloat(ticker.high_24h).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-            <td class="text-right font-mono">$${parseFloat(ticker.low_24h).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-            <td class="text-right font-mono">$${parseFloat(ticker.volume_24h).toLocaleString('en-US', { minimumFractionDigits: 0 })}</td>
-            <td class="text-right">
-              <a href="/trade?pair=${ticker.trading_pair.replace('/', '-')}" class="btn btn-primary btn-sm">
-                交易
+            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium text-gray-900">
+              $${parseFloat(ticker.price).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold ${
+              isPositive ? 'text-green-600' : 'text-red-600'
+            }">
+              ${isPositive ? '+' : ''}${change24h.toFixed(2)}%
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-500">
+              $${parseFloat(ticker.high_24h).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-500">
+              $${parseFloat(ticker.low_24h).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-500">
+              ${formatVolume(ticker.volume_24h)}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-right text-sm">
+              <a
+                href="/trade/${ticker.trading_pair.replace('/', '-')}"
+                class="inline-flex items-center px-3 py-1 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700"
+              >
+                Trade
               </a>
             </td>
           </tr>
         `;
       }).join('');
+
+      // 更新最后更新时间
+      document.getElementById('last-updated')!.textContent = new Date().toLocaleTimeString();
+
+      // 重置倒计时
+      countdown = 10;
+      document.getElementById('countdown')!.textContent = countdown.toString();
+    } catch (error) {
+      console.error('Error loading markets:', error);
+      const tbody = document.getElementById('markets-table')!;
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="7" class="px-6 py-8 text-center text-red-600">
+            Failed to load market data. Please try again.
+          </td>
+        </tr>
+      `;
     }
+  }
 
-    // 初始加载
-    loadMarkets();
+  // 格式化交易量
+  function formatVolume(volume: string): string {
+    const num = parseFloat(volume);
+    if (num >= 1e9) {
+      return `$${(num / 1e9).toFixed(2)}B`;
+    } else if (num >= 1e6) {
+      return `$${(num / 1e6).toFixed(2)}M`;
+    } else if (num >= 1e3) {
+      return `$${(num / 1e3).toFixed(2)}K`;
+    } else {
+      return `$${num.toFixed(2)}`;
+    }
+  }
 
-    // 刷新按钮
-    refreshButton.addEventListener('click', loadMarkets);
-
-    // 自动刷新（60秒）
-    refreshInterval = window.setInterval(loadMarkets, 60000);
-
-    // 页面卸载时清除定时器
-    window.addEventListener('beforeunload', () => {
-      clearInterval(refreshInterval);
+  // 搜索功能
+  document.getElementById('search-input')!.addEventListener('input', (e) => {
+    const searchTerm = (e.target as HTMLInputElement).value.toLowerCase();
+    const rows = document.querySelectorAll('#markets-table tr');
+    
+    rows.forEach((row) => {
+      const tradingPair = row.querySelector('.text-sm.font-medium')?.textContent?.toLowerCase();
+      if (tradingPair && tradingPair.includes(searchTerm)) {
+        (row as HTMLElement).style.display = '';
+      } else {
+        (row as HTMLElement).style.display = 'none';
+      }
     });
-  </script>
-</MainLayout>
+  });
 
+  // 手动刷新
+  document.getElementById('refresh-button')!.addEventListener('click', () => {
+    loadMarkets();
+  });
+
+  // 倒计时
+  function startCountdown() {
+    countdownInterval = window.setInterval(() => {
+      countdown--;
+      document.getElementById('countdown')!.textContent = countdown.toString();
+      
+      if (countdown <= 0) {
+        countdown = 10;
+      }
+    }, 1000);
+  }
+
+  // 自动刷新
+  function startAutoRefresh() {
+    refreshInterval = window.setInterval(() => {
+      loadMarkets();
+    }, 10000); // 每10秒刷新一次
+  }
+
+  // 页面加载时执行
+  loadMarkets();
+  startAutoRefresh();
+  startCountdown();
+
+  // 页面卸载时清除定时器
+  window.addEventListener('beforeunload', () => {
+    clearInterval(refreshInterval);
+    clearInterval(countdownInterval);
+  });
+</script>

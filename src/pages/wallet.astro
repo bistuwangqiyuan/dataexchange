@@ -1,28 +1,348 @@
 ---
 /**
- * Wallet Page
- * 钱包页面
+ * 钱包管理页面
  */
-
 import MainLayout from '@/layouts/MainLayout.astro';
 ---
 
-<MainLayout title="钱包 - CryptoEx">
-  <div class="container py-8">
-    <h1 class="text-4xl font-bold mb-8">我的钱包</h1>
-    
-    <div class="card text-center py-12">
-      <svg class="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
-      </svg>
-      <h2 class="text-2xl font-bold mb-2">钱包功能开发中</h2>
-      <p class="text-gray-600 dark:text-gray-400 mb-6">
-        资产管理界面即将上线
-      </p>
-      <a href="/markets" class="btn btn-primary">
-        查看市场行情
-      </a>
+<MainLayout 
+  title="Crypto Wallet - Manage Your Digital Assets"
+  description="Securely manage your cryptocurrency portfolio with multi-currency wallet support. View balances, deposit, withdraw, and track transaction history for Bitcoin, Ethereum, and more."
+  keywords="crypto wallet, digital wallet, cryptocurrency wallet, bitcoin wallet, ethereum wallet, wallet management"
+  noindex={true}
+>
+  <div class="min-h-screen bg-gray-50 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <!-- 页头 -->
+      <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900">My Wallet</h1>
+        <p class="mt-2 text-sm text-gray-600">
+          Manage your crypto assets (Demo Mode - Simulated Funds)
+        </p>
+      </div>
+
+      <!-- 总资产卡片 -->
+      <div class="bg-white rounded-lg shadow p-6 mb-8">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Total Assets (USDT)</p>
+            <p class="mt-2 text-3xl font-bold text-gray-900" id="total-assets">Loading...</p>
+          </div>
+          <div class="flex space-x-4">
+            <button
+              id="deposit-button"
+              class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+            >
+              Deposit
+            </button>
+            <button
+              id="withdraw-button"
+              class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              Withdraw
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 资产列表 -->
+      <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200">
+          <h2 class="text-lg font-semibold text-gray-900">Assets</h2>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Currency
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Total Balance
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Available
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Frozen
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody id="assets-table" class="bg-white divide-y divide-gray-200">
+              <!-- 资产行将通过 JS 动态插入 -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 交易历史 -->
+      <div class="mt-8 bg-white rounded-lg shadow overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+          <h2 class="text-lg font-semibold text-gray-900">Transaction History</h2>
+          <select
+            id="tx-type-filter"
+            class="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          >
+            <option value="">All Types</option>
+            <option value="deposit">Deposits</option>
+            <option value="withdrawal">Withdrawals</option>
+          </select>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Type
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Currency
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Amount
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Status
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Time
+                </th>
+              </tr>
+            </thead>
+            <tbody id="transactions-table" class="bg-white divide-y divide-gray-200">
+              <!-- 交易记录将通过 JS 动态插入 -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Deposit Modal -->
+  <div id="deposit-modal" class="hidden fixed z-10 inset-0 overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen px-4">
+      <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
+      <div class="bg-white rounded-lg overflow-hidden shadow-xl transform transition-all sm:max-w-lg sm:w-full">
+        <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+          <h3 class="text-lg font-medium text-gray-900 mb-4">Simulated Deposit</h3>
+          <form id="deposit-form" class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Currency</label>
+              <select
+                id="deposit-currency"
+                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                required
+              >
+                <option value="BTC">BTC</option>
+                <option value="ETH">ETH</option>
+                <option value="USDT" selected>USDT</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Amount</label>
+              <input
+                type="number"
+                id="deposit-amount"
+                step="0.000001"
+                min="0.000001"
+                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                required
+              />
+            </div>
+            <div class="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+              <p class="text-sm text-yellow-800">
+                ⚠️ This is a simulated deposit for demo purposes only.
+              </p>
+            </div>
+            <div class="flex justify-end space-x-3">
+              <button
+                type="button"
+                id="close-deposit-modal"
+                class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+              >
+                Confirm Deposit
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
     </div>
   </div>
 </MainLayout>
 
+<script>
+  // 获取 token
+  const getToken = () => localStorage.getItem('access_token');
+
+  // 加载钱包余额
+  async function loadWalletBalances() {
+    try {
+      const response = await fetch('/api/wallet/balances', {
+        headers: {
+          'Authorization': `Bearer ${getToken()}`,
+        },
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          window.location.href = '/login';
+          return;
+        }
+        throw new Error('Failed to load balances');
+      }
+
+      const result = await response.json();
+      const balances = result.data;
+
+      // 更新总资产
+      const totalAssets = balances.reduce((sum: number, wallet: any) => {
+        return sum + parseFloat(wallet.balance) * getPriceInUSDT(wallet.currency);
+      }, 0);
+      document.getElementById('total-assets')!.textContent = `$${totalAssets.toFixed(2)}`;
+
+      // 渲染资产表格
+      const tbody = document.getElementById('assets-table')!;
+      tbody.innerHTML = balances.map((wallet: any) => `
+        <tr>
+          <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+            ${wallet.currency}
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+            ${parseFloat(wallet.balance).toFixed(6)}
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600">
+            ${(parseFloat(wallet.balance) - parseFloat(wallet.frozen)).toFixed(6)}
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+            ${parseFloat(wallet.frozen).toFixed(6)}
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm">
+            <a href="/trade/${wallet.currency}-USDT" class="text-indigo-600 hover:text-indigo-900">
+              Trade
+            </a>
+          </td>
+        </tr>
+      `).join('');
+    } catch (error) {
+      console.error('Error loading balances:', error);
+      alert('Failed to load wallet balances');
+    }
+  }
+
+  // 简化的价格映射（实际应从 API 获取）
+  function getPriceInUSDT(currency: string): number {
+    const prices: Record<string, number> = {
+      'BTC': 45000,
+      'ETH': 3000,
+      'USDT': 1,
+      'BNB': 450,
+      'XRP': 0.85,
+      'ADA': 0.65,
+    };
+    return prices[currency] || 0;
+  }
+
+  // 加载交易历史
+  async function loadTransactionHistory() {
+    try {
+      const response = await fetch('/api/wallet/transactions', {
+        headers: {
+          'Authorization': `Bearer ${getToken()}`,
+        },
+      });
+
+      if (!response.ok) throw new Error('Failed to load transactions');
+
+      const result = await response.json();
+      const transactions = result.data.items;
+
+      const tbody = document.getElementById('transactions-table')!;
+      tbody.innerHTML = transactions.map((tx: any) => `
+        <tr>
+          <td class="px-6 py-4 whitespace-nowrap text-sm">
+            <span class="px-2 py-1 text-xs font-semibold rounded-full ${
+              tx.type === 'deposit' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
+            }">
+              ${tx.type}
+            </span>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${tx.currency}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+            ${parseFloat(tx.amount).toFixed(6)}
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm">
+            <span class="px-2 py-1 text-xs font-semibold rounded-full ${
+              tx.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+            }">
+              ${tx.status}
+            </span>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+            ${new Date(tx.created_at).toLocaleString()}
+          </td>
+        </tr>
+      `).join('');
+    } catch (error) {
+      console.error('Error loading transactions:', error);
+    }
+  }
+
+  // Modal 控制
+  const depositModal = document.getElementById('deposit-modal')!;
+  const depositButton = document.getElementById('deposit-button')!;
+  const closeDepositModal = document.getElementById('close-deposit-modal')!;
+
+  depositButton.addEventListener('click', () => {
+    depositModal.classList.remove('hidden');
+  });
+
+  closeDepositModal.addEventListener('click', () => {
+    depositModal.classList.add('hidden');
+  });
+
+  // 提交充值
+  document.getElementById('deposit-form')!.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const currency = (document.getElementById('deposit-currency') as HTMLSelectElement).value;
+    const amount = (document.getElementById('deposit-amount') as HTMLInputElement).value;
+
+    try {
+      const response = await fetch(`/api/wallet/${currency}/deposit`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${getToken()}`,
+        },
+        body: JSON.stringify({ currency, amount }),
+      });
+
+      if (!response.ok) throw new Error('Deposit failed');
+
+      alert('Simulated deposit successful!');
+      depositModal.classList.add('hidden');
+      loadWalletBalances();
+      loadTransactionHistory();
+    } catch (error) {
+      console.error('Deposit error:', error);
+      alert('Deposit failed. Please try again.');
+    }
+  });
+
+  // 页面加载时执行
+  if (!getToken()) {
+    window.location.href = '/login';
+  } else {
+    loadWalletBalances();
+    loadTransactionHistory();
+  }
+</script>

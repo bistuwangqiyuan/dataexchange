@@ -1,0 +1,79 @@
+/**
+ * GET /api/wallet/transactions
+ * 查询钱包交易历史
+ * 
+ * Query parameters:
+ * - currency: 币种筛选（可选）
+ * - type: 交易类型筛选（可选）
+ * - page: 页码（默认1）
+ * - page_size: 每页数量（默认20）
+ */
+
+import type { APIRoute } from 'astro';
+import { getWalletTransactions } from '@/lib/services/wallet.service';
+import { successResponse, errorResponse } from '@/lib/utils/api-response';
+import { logger } from '@/lib/utils/logger';
+import { ErrorCode } from '@/types/api.types';
+import { getCurrentUser } from '@/lib/services/auth.service';
+
+export const prerender = false;
+
+export const GET: APIRoute = async ({ url }) => {
+  try {
+    // 验证用户登录
+    const user = await getCurrentUser();
+    if (!user) {
+      return new Response(
+        JSON.stringify(errorResponse(ErrorCode.UNAUTHORIZED, 'Please login first')),
+        {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    // 解析查询参数
+    const currency = url.searchParams.get('currency') || undefined;
+    const type = url.searchParams.get('type') as any || undefined;
+    const page = parseInt(url.searchParams.get('page') || '1');
+    const page_size = parseInt(url.searchParams.get('page_size') || '20');
+
+    // 获取交易历史
+    const result = await getWalletTransactions(user.id, {
+      currency,
+      type,
+      page,
+      page_size,
+    });
+
+    // 构造分页响应
+    const response = {
+      items: result.transactions,
+      total: result.total,
+      page,
+      page_size,
+      total_pages: Math.ceil(result.total / page_size),
+    };
+
+    return new Response(JSON.stringify(successResponse(response)), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache',
+      },
+    });
+  } catch (error) {
+    logger.error('Get wallet transactions endpoint error', error);
+
+    const message = error instanceof Error ? error.message : 'Failed to fetch wallet transactions';
+
+    return new Response(
+      JSON.stringify(errorResponse(ErrorCode.INTERNAL_ERROR, message)),
+      {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
+  }
+};
+
