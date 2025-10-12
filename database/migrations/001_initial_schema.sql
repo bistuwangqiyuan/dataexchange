@@ -151,22 +151,26 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- 为需要的表创建触发器
+-- 为需要的表创建触发器（先删除已存在的）
+DROP TRIGGER IF EXISTS update_users_updated_at ON users;
 CREATE TRIGGER update_users_updated_at
   BEFORE UPDATE ON users
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_wallets_updated_at ON wallets;
 CREATE TRIGGER update_wallets_updated_at
   BEFORE UPDATE ON wallets
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_orders_updated_at ON orders;
 CREATE TRIGGER update_orders_updated_at
   BEFORE UPDATE ON orders
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_wallet_transactions_updated_at ON wallet_transactions;
 CREATE TRIGGER update_wallet_transactions_updated_at
   BEFORE UPDATE ON wallet_transactions
   FOR EACH ROW
@@ -185,58 +189,73 @@ ALTER TABLE market_prices ENABLE ROW LEVEL SECURITY;
 ALTER TABLE security_logs ENABLE ROW LEVEL SECURITY;
 
 -- ============================================
--- 创建 RLS 策略
+-- 创建 RLS 策略（先删除已存在的）
 -- ============================================
 
 -- Users: 用户只能查看和更新自己的信息
+DROP POLICY IF EXISTS users_select_own ON users;
 CREATE POLICY users_select_own ON users
   FOR SELECT USING (auth.uid() = id);
 
+DROP POLICY IF EXISTS users_update_own ON users;
 CREATE POLICY users_update_own ON users
   FOR UPDATE USING (auth.uid() = id);
 
 -- Wallets: 用户只能查看自己的钱包
+DROP POLICY IF EXISTS wallets_select_own ON wallets;
 CREATE POLICY wallets_select_own ON wallets
   FOR SELECT USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS wallets_insert_own ON wallets;
 CREATE POLICY wallets_insert_own ON wallets
   FOR INSERT WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS wallets_update_own ON wallets;
 CREATE POLICY wallets_update_own ON wallets
   FOR UPDATE USING (auth.uid() = user_id);
 
 -- Orders: 用户只能查看和管理自己的订单
+DROP POLICY IF EXISTS orders_select_own ON orders;
 CREATE POLICY orders_select_own ON orders
   FOR SELECT USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS orders_insert_own ON orders;
 CREATE POLICY orders_insert_own ON orders
   FOR INSERT WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS orders_update_own ON orders;
 CREATE POLICY orders_update_own ON orders
   FOR UPDATE USING (auth.uid() = user_id);
 
 -- Transactions: 用户只能查看自己的成交记录
+DROP POLICY IF EXISTS transactions_select_own ON transactions;
 CREATE POLICY transactions_select_own ON transactions
   FOR SELECT USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS transactions_insert_own ON transactions;
 CREATE POLICY transactions_insert_own ON transactions
   FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 -- Wallet Transactions: 用户只能查看自己的钱包交易
+DROP POLICY IF EXISTS wallet_transactions_select_own ON wallet_transactions;
 CREATE POLICY wallet_transactions_select_own ON wallet_transactions
   FOR SELECT USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS wallet_transactions_insert_own ON wallet_transactions;
 CREATE POLICY wallet_transactions_insert_own ON wallet_transactions
   FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 -- Market Prices: 所有人可读（公开数据）
+DROP POLICY IF EXISTS market_prices_select_all ON market_prices;
 CREATE POLICY market_prices_select_all ON market_prices
   FOR SELECT TO authenticated, anon USING (true);
 
 -- Security Logs: 用户只能查看自己的日志
+DROP POLICY IF EXISTS security_logs_select_own ON security_logs;
 CREATE POLICY security_logs_select_own ON security_logs
   FOR SELECT USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS security_logs_insert_own ON security_logs;
 CREATE POLICY security_logs_insert_own ON security_logs
   FOR INSERT WITH CHECK (auth.uid() = user_id OR user_id IS NULL);
 
