@@ -1,0 +1,1170 @@
+openapi: 3.0.3
+info:
+  title: 加密货币交易平台 API
+  description: |
+    加密货币交易平台的完整API规范文档。
+    
+    **基础信息**:
+    - 架构: Jamstack (Netlify + Supabase)
+    - 认证: JWT Token (Supabase Auth)
+    - 响应格式: JSON
+    - 所有金额使用字符串格式（避免精度损失）
+    
+    **环境**:
+    - 生产环境: https://crypto-exchange.netlify.app
+    - API基础路径: /api
+    
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@crypto-exchange.com
+
+servers:
+  - url: https://crypto-exchange.netlify.app/api
+    description: 生产环境
+  - url: http://localhost:8888/api
+    description: 本地开发环境 (Netlify Dev)
+
+tags:
+  - name: Auth
+    description: 用户认证相关接口
+  - name: User
+    description: 用户信息管理
+  - name: Wallet
+    description: 钱包与余额管理
+  - name: Market
+    description: 市场行情数据
+  - name: Trading
+    description: 交易下单与订单管理
+  - name: Security
+    description: 安全设置与日志
+
+security:
+  - BearerAuth: []
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Supabase JWT Token
+
+  schemas:
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          example: "INSUFFICIENT_BALANCE"
+        message:
+          type: string
+          example: "余额不足"
+        details:
+          type: object
+          additionalProperties: true
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        username:
+          type: string
+        language:
+          type: string
+          enum: [zh, en]
+        theme:
+          type: string
+          enum: [light, dark]
+        two_factor_enabled:
+          type: boolean
+        is_demo_account:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    Wallet:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        currency:
+          type: string
+          enum: [BTC, ETH, USDT, BNB, ADA, XRP]
+        available_balance:
+          type: string
+          description: "可用余额（字符串格式，避免精度损失）"
+          example: "1.25000000"
+        frozen_balance:
+          type: string
+          description: "冻结余额"
+          example: "0.15000000"
+        total_balance:
+          type: string
+          description: "总余额 = 可用 + 冻结"
+          example: "1.40000000"
+        deposit_address:
+          type: string
+          example: "demo_btc_12345678"
+
+    MarketPrice:
+      type: object
+      properties:
+        trading_pair:
+          type: string
+          example: "BTC/USDT"
+        current_price:
+          type: string
+          example: "45000.50"
+        high_24h:
+          type: string
+        low_24h:
+          type: string
+        change_24h:
+          type: string
+          example: "1.25"
+          description: "24小时涨跌幅（百分比）"
+        volume_24h:
+          type: string
+        updated_at:
+          type: string
+          format: date-time
+
+    Order:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        trading_pair:
+          type: string
+          example: "BTC/USDT"
+        order_type:
+          type: string
+          enum: [market, limit]
+        side:
+          type: string
+          enum: [buy, sell]
+        price:
+          type: string
+          nullable: true
+          description: "限价单价格（市价单为null）"
+        quantity:
+          type: string
+        filled_quantity:
+          type: string
+        status:
+          type: string
+          enum: [pending, partial_filled, filled, cancelled, failed]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Transaction:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        order_id:
+          type: string
+          format: uuid
+        executed_price:
+          type: string
+        executed_quantity:
+          type: string
+        executed_amount:
+          type: string
+        fee:
+          type: string
+        fee_currency:
+          type: string
+        executed_at:
+          type: string
+          format: date-time
+
+    WalletTransaction:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        currency:
+          type: string
+        transaction_type:
+          type: string
+          enum: [deposit, withdraw, trade_buy, trade_sell, fee, bonus, freeze, unfreeze]
+        amount:
+          type: string
+          description: "正数为增加，负数为减少"
+        balance_after:
+          type: string
+        description:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+paths:
+  # ==================== 认证接口 ====================
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: 用户注册
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  minLength: 8
+                  description: "至少8位，包含字母和数字"
+                username:
+                  type: string
+                  minLength: 3
+                  maxLength: 20
+      responses:
+        '201':
+          description: 注册成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/User'
+                  message:
+                    type: string
+                    example: "注册成功，请查收验证邮件"
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: 邮箱已存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: 用户登录
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                remember_me:
+                  type: boolean
+                  default: false
+      responses:
+        '200':
+          description: 登录成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/User'
+                  access_token:
+                    type: string
+                    description: "JWT访问令牌"
+                  refresh_token:
+                    type: string
+                  expires_in:
+                    type: integer
+                    example: 3600
+        '401':
+          description: 邮箱或密码错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 登录尝试次数过多，请稍后再试
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: 用户登出
+      responses:
+        '200':
+          description: 登出成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "登出成功"
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: 刷新访问令牌
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refresh_token]
+              properties:
+                refresh_token:
+                  type: string
+      responses:
+        '200':
+          description: 令牌刷新成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                  refresh_token:
+                    type: string
+                  expires_in:
+                    type: integer
+
+  /auth/reset-password:
+    post:
+      tags: [Auth]
+      summary: 请求密码重置
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        '200':
+          description: 密码重置邮件已发送
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "密码重置邮件已发送，请查收"
+
+  # ==================== 用户接口 ====================
+  /user/profile:
+    get:
+      tags: [User]
+      summary: 获取用户资料
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+    patch:
+      tags: [User]
+      summary: 更新用户资料
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                language:
+                  type: string
+                  enum: [zh, en]
+                theme:
+                  type: string
+                  enum: [light, dark]
+                notification_email:
+                  type: boolean
+                notification_trade:
+                  type: boolean
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+  /user/change-password:
+    post:
+      tags: [User]
+      summary: 修改登录密码
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [old_password, new_password]
+              properties:
+                old_password:
+                  type: string
+                new_password:
+                  type: string
+                  minLength: 8
+      responses:
+        '200':
+          description: 密码修改成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "密码修改成功"
+
+  # ==================== 钱包接口 ====================
+  /wallet/balances:
+    get:
+      tags: [Wallet]
+      summary: 获取所有钱包余额
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  wallets:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Wallet'
+                  total_value_usdt:
+                    type: string
+                    description: "总资产价值（折合USDT）"
+
+  /wallet/{currency}/balance:
+    get:
+      tags: [Wallet]
+      summary: 获取指定币种余额
+      parameters:
+        - name: currency
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [BTC, ETH, USDT, BNB, ADA, XRP]
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Wallet'
+
+  /wallet/{currency}/deposit:
+    post:
+      tags: [Wallet]
+      summary: 模拟充值（演示功能）
+      description: |
+        在演示模式下，用户可以模拟充值功能。
+        生产环境需要集成真实区块链或第三方支付。
+      parameters:
+        - name: currency
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount]
+              properties:
+                amount:
+                  type: string
+                  example: "0.1"
+      responses:
+        '200':
+          description: 充值成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transaction_id:
+                    type: string
+                    format: uuid
+                  message:
+                    type: string
+                    example: "模拟充值成功"
+
+  /wallet/{currency}/withdraw:
+    post:
+      tags: [Wallet]
+      summary: 申请提现
+      parameters:
+        - name: currency
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [address, amount, trading_password]
+              properties:
+                address:
+                  type: string
+                  description: "提现地址"
+                  example: "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"
+                amount:
+                  type: string
+                  example: "0.05"
+                trading_password:
+                  type: string
+                  description: "交易密码（6位数字）"
+                two_factor_code:
+                  type: string
+                  description: "2FA验证码（如已启用）"
+      responses:
+        '200':
+          description: 提现申请已提交
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  withdraw_id:
+                    type: string
+                    format: uuid
+                  status:
+                    type: string
+                    example: "pending"
+                  message:
+                    type: string
+                    example: "提现申请已提交，请等待处理"
+
+  /wallet/transactions:
+    get:
+      tags: [Wallet]
+      summary: 获取钱包交易历史
+      parameters:
+        - name: currency
+          in: query
+          schema:
+            type: string
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [deposit, withdraw, trade_buy, trade_sell, fee]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transactions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/WalletTransaction'
+                  pagination:
+                    type: object
+                    properties:
+                      page:
+                        type: integer
+                      page_size:
+                        type: integer
+                      total:
+                        type: integer
+                      total_pages:
+                        type: integer
+
+  # ==================== 市场行情接口 ====================
+  /market/prices:
+    get:
+      tags: [Market]
+      summary: 获取所有交易对价格
+      security: []
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  prices:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MarketPrice'
+
+  /market/{trading_pair}/price:
+    get:
+      tags: [Market]
+      summary: 获取指定交易对价格
+      security: []
+      parameters:
+        - name: trading_pair
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "BTC-USDT"
+          description: "交易对，使用短横线分隔，如 BTC-USDT"
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MarketPrice'
+
+  /market/{trading_pair}/kline:
+    get:
+      tags: [Market]
+      summary: 获取K线数据
+      security: []
+      parameters:
+        - name: trading_pair
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: interval
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: ['1m', '5m', '15m', '1h', '4h', '1d', '1w']
+          description: "K线周期"
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+            maximum: 1000
+          description: "返回数量"
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  klines:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        time:
+                          type: integer
+                          description: "时间戳（毫秒）"
+                        open:
+                          type: string
+                        high:
+                          type: string
+                        low:
+                          type: string
+                        close:
+                          type: string
+                        volume:
+                          type: string
+
+  /market/{trading_pair}/depth:
+    get:
+      tags: [Market]
+      summary: 获取订单簿深度
+      security: []
+      parameters:
+        - name: trading_pair
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  bids:
+                    type: array
+                    description: "买盘 [价格, 数量]"
+                    items:
+                      type: array
+                      items:
+                        type: string
+                      minItems: 2
+                      maxItems: 2
+                  asks:
+                    type: array
+                    description: "卖盘 [价格, 数量]"
+                    items:
+                      type: array
+                      items:
+                        type: string
+                      minItems: 2
+                      maxItems: 2
+
+  # ==================== 交易接口 ====================
+  /orders/create:
+    post:
+      tags: [Trading]
+      summary: 创建订单
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [trading_pair, order_type, side, quantity]
+              properties:
+                trading_pair:
+                  type: string
+                  example: "BTC/USDT"
+                order_type:
+                  type: string
+                  enum: [market, limit]
+                side:
+                  type: string
+                  enum: [buy, sell]
+                price:
+                  type: string
+                  description: "限价单必填"
+                quantity:
+                  type: string
+                trading_password:
+                  type: string
+                  description: "交易密码（如已设置）"
+      responses:
+        '201':
+          description: 订单创建成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  order:
+                    $ref: '#/components/schemas/Order'
+                  message:
+                    type: string
+                    example: "订单创建成功"
+        '400':
+          description: 参数错误或余额不足
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /orders/{order_id}/cancel:
+    post:
+      tags: [Trading]
+      summary: 取消订单
+      parameters:
+        - name: order_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 订单取消成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  order:
+                    $ref: '#/components/schemas/Order'
+                  message:
+                    type: string
+                    example: "订单已取消"
+        '400':
+          description: 订单无法取消（已成交或不存在）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /orders/active:
+    get:
+      tags: [Trading]
+      summary: 获取当前委托订单
+      parameters:
+        - name: trading_pair
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  orders:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Order'
+                  pagination:
+                    type: object
+                    properties:
+                      page:
+                        type: integer
+                      page_size:
+                        type: integer
+                      total:
+                        type: integer
+
+  /orders/history:
+    get:
+      tags: [Trading]
+      summary: 获取历史订单
+      parameters:
+        - name: trading_pair
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [filled, cancelled, failed]
+        - name: start_time
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: end_time
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  orders:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Order'
+                  pagination:
+                    type: object
+
+  /orders/{order_id}:
+    get:
+      tags: [Trading]
+      summary: 获取订单详情
+      parameters:
+        - name: order_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  order:
+                    $ref: '#/components/schemas/Order'
+                  transactions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Transaction'
+
+  /transactions:
+    get:
+      tags: [Trading]
+      summary: 获取成交记录
+      parameters:
+        - name: trading_pair
+          in: query
+          schema:
+            type: string
+        - name: start_time
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: end_time
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transactions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Transaction'
+                  pagination:
+                    type: object
+
+  # ==================== 安全接口 ====================
+  /security/2fa/enable:
+    post:
+      tags: [Security]
+      summary: 启用两因素认证
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  secret:
+                    type: string
+                    description: "TOTP密钥"
+                  qr_code:
+                    type: string
+                    description: "二维码数据URL"
+                  backup_codes:
+                    type: array
+                    items:
+                      type: string
+
+  /security/2fa/verify:
+    post:
+      tags: [Security]
+      summary: 验证并完成2FA启用
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code:
+                  type: string
+                  description: "6位验证码"
+      responses:
+        '200':
+          description: 2FA启用成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "两因素认证已启用"
+
+  /security/2fa/disable:
+    post:
+      tags: [Security]
+      summary: 禁用两因素认证
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code, password]
+              properties:
+                code:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: 2FA禁用成功
+
+  /security/trading-password:
+    post:
+      tags: [Security]
+      summary: 设置交易密码
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [trading_password]
+              properties:
+                trading_password:
+                  type: string
+                  pattern: '^\d{6}$'
+                  description: "6位数字"
+                login_password:
+                  type: string
+                  description: "登录密码（用于验证身份）"
+      responses:
+        '200':
+          description: 交易密码设置成功
+
+  /security/login-history:
+    get:
+      tags: [Security]
+      summary: 获取登录历史
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  logs:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          format: uuid
+                        action_type:
+                          type: string
+                        result:
+                          type: string
+                        ip_address:
+                          type: string
+                        user_agent:
+                          type: string
+                        city:
+                          type: string
+                        country:
+                          type: string
+                        created_at:
+                          type: string
+                          format: date-time
+                  pagination:
+                    type: object
+

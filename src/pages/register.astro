@@ -1,0 +1,181 @@
+---
+/**
+ * Register Page
+ * 注册页面
+ */
+
+import MainLayout from '@/layouts/MainLayout.astro';
+---
+
+<MainLayout title="注册 - CryptoEx">
+  <div class="min-h-[calc(100vh-200px)] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full">
+      <div class="card">
+        <div class="text-center mb-8">
+          <h2 class="text-3xl font-bold">创建账号</h2>
+          <p class="text-gray-600 dark:text-gray-400 mt-2">
+            开始您的加密货币交易之旅
+          </p>
+        </div>
+
+        <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 px-4 py-3 rounded-lg mb-6">
+          <p class="text-sm text-yellow-800 dark:text-yellow-300">
+            ⚠️ 这是教育演示项目，请勿使用真实个人信息
+          </p>
+        </div>
+
+        <form id="registerForm" class="space-y-6">
+          <div>
+            <label for="email" class="label">邮箱地址</label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              required
+              class="input"
+              placeholder="your@email.com"
+            />
+            <p id="emailError" class="error-text hidden"></p>
+          </div>
+
+          <div>
+            <label for="password" class="label">密码</label>
+            <input
+              type="password"
+              id="password"
+              name="password"
+              required
+              class="input"
+              placeholder="至少8位，包含大小写字母和数字"
+            />
+            <p id="passwordError" class="error-text hidden"></p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              密码要求：最少8位，包含大写字母、小写字母和数字
+            </p>
+          </div>
+
+          <div>
+            <label for="confirmPassword" class="label">确认密码</label>
+            <input
+              type="password"
+              id="confirmPassword"
+              name="confirmPassword"
+              required
+              class="input"
+              placeholder="再次输入密码"
+            />
+            <p id="confirmPasswordError" class="error-text hidden"></p>
+          </div>
+
+          <div class="flex items-start">
+            <input
+              id="terms"
+              name="terms"
+              type="checkbox"
+              required
+              class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded mt-1"
+            />
+            <label for="terms" class="ml-2 block text-sm text-gray-900 dark:text-gray-300">
+              我同意
+              <a href="/terms" class="text-primary-600 hover:text-primary-500">服务条款</a>
+              和
+              <a href="/privacy" class="text-primary-600 hover:text-primary-500">隐私政策</a>
+            </label>
+          </div>
+
+          <div id="formError" class="hidden bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-3 rounded-lg">
+          </div>
+
+          <button
+            type="submit"
+            id="submitButton"
+            class="w-full btn btn-primary btn-lg"
+          >
+            注册
+          </button>
+        </form>
+
+        <div class="mt-6 text-center">
+          <p class="text-sm text-gray-600 dark:text-gray-400">
+            已有账号？
+            <a href="/login" class="font-medium text-primary-600 hover:text-primary-500">
+              立即登录
+            </a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('registerForm') as HTMLFormElement;
+    const submitButton = document.getElementById('submitButton') as HTMLButtonElement;
+    const formError = document.getElementById('formError') as HTMLDivElement;
+    const passwordInput = document.getElementById('password') as HTMLInputElement;
+    const confirmPasswordInput = document.getElementById('confirmPassword') as HTMLInputElement;
+    const confirmPasswordError = document.getElementById('confirmPasswordError') as HTMLParagraphElement;
+
+    // 验证密码匹配
+    confirmPasswordInput.addEventListener('input', () => {
+      if (confirmPasswordInput.value && passwordInput.value !== confirmPasswordInput.value) {
+        confirmPasswordError.textContent = '两次输入的密码不一致';
+        confirmPasswordError.classList.remove('hidden');
+      } else {
+        confirmPasswordError.classList.add('hidden');
+      }
+    });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      // 清除之前的错误
+      formError.classList.add('hidden');
+
+      // 获取表单数据
+      const formData = new FormData(form);
+      const email = formData.get('email') as string;
+      const password = formData.get('password') as string;
+      const confirmPassword = formData.get('confirmPassword') as string;
+
+      // 验证密码匹配
+      if (password !== confirmPassword) {
+        confirmPasswordError.textContent = '两次输入的密码不一致';
+        confirmPasswordError.classList.remove('hidden');
+        return;
+      }
+
+      // 禁用按钮
+      submitButton.disabled = true;
+      submitButton.innerHTML = '<span class="spinner"></span> 注册中...';
+
+      try {
+        const response = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ email, password }),
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          // 注册成功，跳转到市场页面
+          window.location.href = '/markets';
+        } else {
+          // 显示错误
+          formError.textContent = result.error?.message || '注册失败，请重试';
+          formError.classList.remove('hidden');
+        }
+      } catch (error) {
+        formError.textContent = '网络错误，请稍后重试';
+        formError.classList.remove('hidden');
+      } finally {
+        // 恢复按钮
+        submitButton.disabled = false;
+        submitButton.textContent = '注册';
+      }
+    });
+  </script>
+</MainLayout>
+

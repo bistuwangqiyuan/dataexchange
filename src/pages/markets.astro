@@ -1,0 +1,141 @@
+---
+/**
+ * Markets Page
+ * 市场行情页面
+ */
+
+import MainLayout from '@/layouts/MainLayout.astro';
+---
+
+<MainLayout title="市场行情 - CryptoEx">
+  <div class="container py-8">
+    <div class="mb-8">
+      <h1 class="text-4xl font-bold mb-2">市场行情</h1>
+      <p class="text-gray-600 dark:text-gray-400">
+        实时加密货币价格和24小时变化
+      </p>
+    </div>
+
+    <!-- Loading State -->
+    <div id="loading" class="text-center py-12">
+      <div class="spinner w-12 h-12 mx-auto mb-4"></div>
+      <p class="text-gray-600 dark:text-gray-400">加载行情数据中...</p>
+    </div>
+
+    <!-- Error State -->
+    <div id="error" class="hidden bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 px-6 py-4 rounded-lg">
+      <p class="font-medium">加载失败</p>
+      <p class="text-sm mt-1">无法获取市场数据，请稍后重试</p>
+    </div>
+
+    <!-- Markets Table -->
+    <div id="marketsTable" class="hidden card overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>交易对</th>
+              <th class="text-right">最新价格</th>
+              <th class="text-right">24h涨跌</th>
+              <th class="text-right">24h最高</th>
+              <th class="text-right">24h最低</th>
+              <th class="text-right">24h成交量</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="marketsBody">
+            <!-- 动态填充 -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Refresh Button -->
+    <div class="mt-6 text-center">
+      <button
+        id="refreshButton"
+        class="btn btn-secondary"
+      >
+        刷新数据
+      </button>
+      <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">
+        数据每60秒自动刷新
+      </p>
+    </div>
+  </div>
+
+  <script>
+    const loading = document.getElementById('loading')!;
+    const error = document.getElementById('error')!;
+    const marketsTable = document.getElementById('marketsTable')!;
+    const marketsBody = document.getElementById('marketsBody')!;
+    const refreshButton = document.getElementById('refreshButton')!;
+
+    let refreshInterval: number;
+
+    async function loadMarkets() {
+      try {
+        loading.classList.remove('hidden');
+        error.classList.add('hidden');
+        marketsTable.classList.add('hidden');
+
+        const response = await fetch('/api/market/tickers');
+        const result = await response.json();
+
+        if (result.success && result.data) {
+          displayMarkets(result.data);
+          loading.classList.add('hidden');
+          marketsTable.classList.remove('hidden');
+        } else {
+          throw new Error('Failed to load markets');
+        }
+      } catch (err) {
+        console.error('Error loading markets:', err);
+        loading.classList.add('hidden');
+        error.classList.remove('hidden');
+      }
+    }
+
+    function displayMarkets(tickers: any[]) {
+      marketsBody.innerHTML = tickers.map(ticker => {
+        const change = parseFloat(ticker.change_24h);
+        const changeClass = change >= 0 ? 'price-up' : 'price-down';
+        const changeIcon = change >= 0 ? '▲' : '▼';
+        const changePercent = (change * 100).toFixed(2);
+
+        return `
+          <tr>
+            <td class="font-medium">${ticker.trading_pair}</td>
+            <td class="text-right font-mono">$${parseFloat(ticker.price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+            <td class="text-right font-medium ${changeClass}">
+              ${changeIcon} ${Math.abs(parseFloat(changePercent))}%
+            </td>
+            <td class="text-right font-mono">$${parseFloat(ticker.high_24h).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+            <td class="text-right font-mono">$${parseFloat(ticker.low_24h).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+            <td class="text-right font-mono">$${parseFloat(ticker.volume_24h).toLocaleString('en-US', { minimumFractionDigits: 0 })}</td>
+            <td class="text-right">
+              <a href="/trade?pair=${ticker.trading_pair.replace('/', '-')}" class="btn btn-primary btn-sm">
+                交易
+              </a>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // 初始加载
+    loadMarkets();
+
+    // 刷新按钮
+    refreshButton.addEventListener('click', loadMarkets);
+
+    // 自动刷新（60秒）
+    refreshInterval = window.setInterval(loadMarkets, 60000);
+
+    // 页面卸载时清除定时器
+    window.addEventListener('beforeunload', () => {
+      clearInterval(refreshInterval);
+    });
+  </script>
+</MainLayout>
+
