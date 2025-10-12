@@ -164,7 +164,16 @@ import MainLayout from '@/layouts/MainLayout.astro';
           window.location.href = '/markets';
         } else {
           // 显示错误
-          formError.textContent = result.error?.message || '注册失败，请重试';
+          const errorMessage = result.error?.message || '注册失败，请重试';
+          
+          // 如果是邮箱确认消息，显示为成功提示
+          if (errorMessage.includes('check your email')) {
+            formError.className = 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 px-4 py-3 rounded-lg';
+            formError.textContent = '注册成功！请检查您的邮箱确认账号后再登录。';
+          } else {
+            formError.className = 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-3 rounded-lg';
+            formError.textContent = errorMessage;
+          }
           formError.classList.remove('hidden');
         }
       } catch (error) {

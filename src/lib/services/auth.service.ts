@@ -27,8 +27,14 @@ export async function registerUser(data: RegisterRequest): Promise<AuthResponse>
     throw new Error(authError.message);
   }
 
-  if (!authData.user || !authData.session) {
+  if (!authData.user) {
     throw new Error('Registration failed: No user data returned');
+  }
+
+  // 如果启用了邮箱确认，session可能为null
+  if (!authData.session) {
+    logger.info('User registered, email confirmation required', { userId: authData.user.id });
+    throw new Error('Registration successful! Please check your email to confirm your account before logging in.');
   }
 
   logger.info('User registered successfully', { userId: authData.user.id });
