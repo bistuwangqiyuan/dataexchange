@@ -2,15 +2,11 @@
  * Netlify Scheduled Function
  * 
  * 定时检查并执行待成交的限价单
- * Schedule: 每30秒执行一次
+ * Schedule: 每分钟执行一次
  * 
- * 配置方法：在netlify.toml中添加：
- * [[plugins]]
- *   package = "@netlify/plugin-functions-core"
- * 
- * [functions]
- *   schedule = "scheduled-match-orders"
- *   cron = "*/30 * * * * *"
+ * 注意：Netlify Scheduled Functions 使用标准 5 字段 cron 格式
+ * 格式: minute hour day month day_of_week
+ * 最小间隔为 1 分钟
  */
 
 import { schedule } from '@netlify/functions';
@@ -19,8 +15,9 @@ import { logger } from '../../src/lib/utils/logger';
 
 /**
  * 定时任务处理函数
+ * Cron: */1 * * * * = 每分钟执行一次
  */
-const handler = schedule('*/30 * * * * *', async () => {
+const handler = schedule('* * * * *', async () => {
   try {
     logger.info('Starting scheduled limit order matching');
 
