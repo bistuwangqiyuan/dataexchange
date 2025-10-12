@@ -87,7 +87,8 @@ describe('Decimal Utilities', () => {
 
     it('should handle high precision', () => {
       const total = calculateTotal('45123.456', '0.123456');
-      expect(total.toFixed(6)).toBe('5571.120790');
+      // 实际计算: 45123.456 * 0.123456 = 5570.761383936
+      expect(total.toFixed(6)).toBe('5570.761384');
     });
   });
 
@@ -179,7 +180,8 @@ describe('Decimal Utilities', () => {
   describe('Edge Cases', () => {
     it('should handle very small amounts', () => {
       const d = decimal('0.00000001');
-      expect(d.toString()).toBe('0.00000001');
+      // decimal.js默认使用科学计数法表示很小的数
+      expect(d.toFixed(8)).toBe('0.00000001');
     });
 
     it('should maintain precision in calculations', () => {
