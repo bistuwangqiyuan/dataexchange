@@ -10,10 +10,16 @@ import type { Database } from '@/types/database.types';
 /**
  * 获取公共环境变量
  * 这些变量在客户端和服务器都可用
+ * 兼容浏览器环境(import.meta.env)和Node.js环境(process.env)
  */
 function getPublicEnv() {
-  const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
+  // 在浏览器环境使用 import.meta.env，在服务器环境使用 process.env
+  const supabaseUrl = typeof import.meta !== 'undefined' && import.meta.env 
+    ? import.meta.env.PUBLIC_SUPABASE_URL 
+    : process.env.PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = typeof import.meta !== 'undefined' && import.meta.env
+    ? import.meta.env.PUBLIC_SUPABASE_ANON_KEY
+    : process.env.PUBLIC_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseAnonKey) {
     throw new Error(
@@ -61,7 +67,9 @@ export function createServerClient() {
  */
 export function createAdminClient() {
   const { supabaseUrl } = getPublicEnv();
-  const serviceRoleKey = import.meta.env.SUPABASE_SERVICE_ROLE_KEY;
+  const serviceRoleKey = typeof import.meta !== 'undefined' && import.meta.env
+    ? import.meta.env.SUPABASE_SERVICE_ROLE_KEY
+    : process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!serviceRoleKey) {
     throw new Error(

@@ -14,7 +14,11 @@ class Logger {
   private isDevelopment: boolean;
 
   constructor() {
-    this.isDevelopment = import.meta.env.NODE_ENV === 'development';
+    // 兼容浏览器环境(import.meta.env)和Node.js环境(process.env)
+    const nodeEnv = typeof import.meta !== 'undefined' && import.meta.env
+      ? import.meta.env.NODE_ENV
+      : process.env.NODE_ENV;
+    this.isDevelopment = nodeEnv === 'development';
   }
 
   /**

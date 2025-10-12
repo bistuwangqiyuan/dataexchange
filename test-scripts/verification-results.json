@@ -1,0 +1,11 @@
+{
+  "timestamp": "2025-10-12T11:34:35.242Z",
+  "verifyResults": {
+    "fixed": 0,
+    "stillBroken": 6,
+    "total": 6,
+    "successRate": 0
+  },
+  "testResults": null,
+  "status": "needs_attention"
+}
