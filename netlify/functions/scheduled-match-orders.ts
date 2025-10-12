@@ -15,7 +15,8 @@ import { logger } from '../../src/lib/utils/logger';
 
 /**
  * 定时任务处理函数
- * Cron: */1 * * * * = 每分钟执行一次
+ * Cron: * * * * * (每分钟执行一次)
+ * 格式: 分钟 小时 日期 月份 星期
  */
 const handler = schedule('* * * * *', async () => {
   try {
