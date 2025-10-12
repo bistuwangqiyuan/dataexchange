@@ -88,7 +88,8 @@ describe('Decimal Utilities', () => {
     it('should handle high precision', () => {
       const total = calculateTotal('45123.456', '0.123456');
       // 实际计算: 45123.456 * 0.123456 = 5570.761383936
-      expect(total.toFixed(6)).toBe('5570.761384');
+      // decimal.js uses ROUND_DOWN, so 5570.761383936 → 5570.761383
+      expect(total.toFixed(6)).toBe('5570.761383');
     });
   });
 
