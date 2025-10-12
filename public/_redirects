@@ -1,7 +1,0 @@
-# Astro Netlify SSR redirects
-# API routes should be handled by SSR function
-/api/*  /.netlify/functions/ssr  200
-
-# All other routes handled by SSR for hybrid mode
-/*  /.netlify/functions/ssr  200
-
