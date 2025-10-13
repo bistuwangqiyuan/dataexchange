@@ -10,20 +10,16 @@ import type { Database } from '@/types/database.types';
 /**
  * 获取公共环境变量
  * 这些变量在客户端和服务器都可用
- * 兼容浏览器环境(import.meta.env)和Node.js环境(process.env)
+ * 优先使用 process.env (兼容Netlify Functions)
  */
 function getPublicEnv() {
-  // 在浏览器环境使用 import.meta.env，在服务器环境使用 process.env
-  const supabaseUrl = typeof import.meta !== 'undefined' && import.meta.env 
-    ? import.meta.env.PUBLIC_SUPABASE_URL 
-    : process.env.PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = typeof import.meta !== 'undefined' && import.meta.env
-    ? import.meta.env.PUBLIC_SUPABASE_ANON_KEY
-    : process.env.PUBLIC_SUPABASE_ANON_KEY;
+  // 优先使用 process.env，确保在所有环境中都能正常工作
+  const supabaseUrl = process.env.PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.PUBLIC_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseAnonKey) {
     throw new Error(
-      'Missing Supabase environment variables. Please check .env file.'
+      'Missing Supabase environment variables. Please check .env file and Netlify environment settings.'
     );
   }
 
@@ -67,9 +63,7 @@ export function createServerClient() {
  */
 export function createAdminClient() {
   const { supabaseUrl } = getPublicEnv();
-  const serviceRoleKey = typeof import.meta !== 'undefined' && import.meta.env
-    ? import.meta.env.SUPABASE_SERVICE_ROLE_KEY
-    : process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!serviceRoleKey) {
     throw new Error(
@@ -87,6 +81,28 @@ export function createAdminClient() {
 
 /**
  * 默认导出浏览器客户端（用于组件）
+ * 使用懒加载，避免在服务器端初始化时出错
  */
-export const supabase = createBrowserClient();
+let _browserClient: ReturnType<typeof createClient<Database>> | null = null;
+
+export function getBrowserClient() {
+  if (typeof window === 'undefined') {
+    // 在服务器端，返回服务器客户端
+    return createServerClient();
+  }
+  if (_browserClient) return _browserClient;
+  _browserClient = createBrowserClient();
+  return _browserClient;
+}
+
+// 不在模块级别初始化，避免SSR时立即执行
+// 组件中应该使用 getBrowserClient() 而不是直接使用 supabase
+export const supabase = {
+  get auth() { return getBrowserClient().auth; },
+  get from() { return getBrowserClient().from.bind(getBrowserClient()); },
+  get storage() { return getBrowserClient().storage; },
+  get functions() { return getBrowserClient().functions; },
+  get realtime() { return getBrowserClient().realtime; },
+  get channel() { return getBrowserClient().channel.bind(getBrowserClient()); },
+};
 
