@@ -15,7 +15,7 @@ export const prerender = false;
 export const POST: APIRoute = async ({ request }) => {
   try {
     // 验证用户登录
-    const user = await getCurrentUser();
+    const user = await getCurrentUser(request);
     if (!user) {
       return new Response(
         JSON.stringify(errorResponse(ErrorCode.UNAUTHORIZED, 'Please login first')),

@@ -14,6 +14,7 @@
     "test:watch": "vitest --watch",
     "test:ci": "vitest run --coverage",
     "test:e2e": "playwright test",
+    "test:e2e:prod": "playwright test",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx,.astro",
     "lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx,.astro --fix",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,astro,json,md}\""
@@ -21,9 +22,12 @@
   "dependencies": {
     "@astrojs/netlify": "^5.5.3",
     "@astrojs/react": "^3.6.2",
+    "@neondatabase/serverless": "^1.0.2",
     "@supabase/supabase-js": "^2.45.4",
     "astro": "^4.15.11",
+    "bcryptjs": "^3.0.3",
     "decimal.js": "^10.4.3",
+    "jsonwebtoken": "^9.0.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "zod": "^3.23.8"
@@ -54,4 +58,3 @@
   },
   "packageManager": "pnpm@8.15.0"
 }
-

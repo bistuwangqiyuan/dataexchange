@@ -1,5 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const baseURL = process.env.BASE_URL || process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:4321';
+const isProduction = baseURL.startsWith('http') && !baseURL.includes('localhost');
+
 export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: true,
@@ -8,9 +11,11 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
   use: {
-    baseURL: 'http://localhost:8888',
+    baseURL,
     trace: 'on-first-retry',
+    actionTimeout: 15000,
   },
+  timeout: isProduction ? 20000 : 60000,
   projects: [
     {
       name: 'chromium',
@@ -29,10 +34,14 @@ export default defineConfig({
       use: { ...devices['Pixel 5'] },
     },
   ],
-  webServer: {
-    command: 'pnpm dev',
-    url: 'http://localhost:8888',
-    reuseExistingServer: !process.env.CI,
-  },
+  ...(isProduction
+    ? {}
+    : {
+        webServer: {
+          command: 'pnpm dev',
+          url: 'http://localhost:4321',
+          reuseExistingServer: !process.env.CI,
+        },
+      }),
 });
 

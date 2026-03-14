@@ -40,15 +40,11 @@ export const POST: APIRoute = async ({ request }) => {
     });
   } catch (error) {
     logger.error('Register endpoint error', error);
-    
     const message = error instanceof Error ? error.message : 'Registration failed';
-    
+    const isEmailExists = message.includes('already registered') || message.includes('Email already');
     return new Response(
-      JSON.stringify(errorResponse(ErrorCode.INTERNAL_ERROR, message)),
-      {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      }
+      JSON.stringify(errorResponse(isEmailExists ? ErrorCode.EMAIL_ALREADY_EXISTS : ErrorCode.INTERNAL_ERROR, message)),
+      { status: isEmailExists ? 400 : 500, headers: { 'Content-Type': 'application/json' } }
     );
   }
 };

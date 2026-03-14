@@ -5,7 +5,7 @@
 
 import type { APIRoute } from 'astro';
 import { getCurrentUser } from '@/lib/services/auth.service';
-import { createServerClient } from '@/lib/supabase/client';
+import { getDb } from '@/lib/db/neon';
 import { successResponse, errorResponse } from '@/lib/utils/api-response';
 import { logger } from '@/lib/utils/logger';
 import { ErrorCode } from '@/types/api.types';
@@ -15,9 +15,9 @@ export const prerender = false;
 /**
  * 获取用户资料
  */
-export const GET: APIRoute = async () => {
+export const GET: APIRoute = async ({ request }) => {
   try {
-    const user = await getCurrentUser();
+    const user = await getCurrentUser(request);
     if (!user) {
       return new Response(
         JSON.stringify(errorResponse(ErrorCode.UNAUTHORIZED, 'Please login first')),
@@ -28,17 +28,12 @@ export const GET: APIRoute = async () => {
       );
     }
 
-    const supabase = createServerClient();
+    const sql = getDb();
+    const rows = await sql`SELECT id, email, is_verified, created_at, last_login_at, updated_at FROM users WHERE id = ${user.id}`;
+    const userData = rows[0];
 
-    // 获取用户详细信息
-    const { data: userData, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', user.id)
-      .single();
-
-    if (error) {
-      logger.error('Failed to fetch user profile', error);
+    if (!userData) {
+      logger.error('Failed to fetch user profile', { userId: user.id });
       return new Response(
         JSON.stringify(errorResponse(ErrorCode.INTERNAL_ERROR, 'Failed to fetch profile')),
         {
@@ -78,7 +73,7 @@ export const GET: APIRoute = async () => {
  */
 export const PATCH: APIRoute = async ({ request }) => {
   try {
-    const user = await getCurrentUser();
+    const user = await getCurrentUser(request);
     if (!user) {
       return new Response(
         JSON.stringify(errorResponse(ErrorCode.UNAUTHORIZED, 'Please login first')),
@@ -90,50 +85,48 @@ export const PATCH: APIRoute = async ({ request }) => {
     }
 
     const body = await request.json();
-    const supabase = createServerClient();
+    const sql = getDb();
 
-    // 只允许更新特定字段
     const allowedFields = ['email', 'is_verified', 'last_login_at'];
-    const updates: Record<string, any> = {};
-
+    const updates: Record<string, unknown> = {};
     for (const field of allowedFields) {
-      if (body[field] !== undefined) {
-        updates[field] = body[field];
-      }
+      if (body[field] !== undefined) updates[field] = body[field];
     }
-
     if (Object.keys(updates).length === 0) {
       return new Response(
         JSON.stringify(errorResponse(ErrorCode.INVALID_INPUT, 'No valid fields to update')),
-        {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
-        }
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
-    updates.updated_at = new Date().toISOString();
-
-    const { data, error } = await supabase
-      .from('users')
-      .update(updates)
-      .eq('id', user.id)
-      .select()
-      .single();
-
-    if (error) {
-      logger.error('Failed to update user profile', error);
+    let rows: unknown[];
+    if (updates.email !== undefined) {
+      rows = await sql`
+        UPDATE users SET email = ${String(updates.email)}, updated_at = NOW()
+        WHERE id = ${user.id}
+        RETURNING id, email, is_verified, created_at, last_login_at, updated_at
+      `;
+    } else if (updates.is_verified !== undefined) {
+      rows = await sql`
+        UPDATE users SET is_verified = ${Boolean(updates.is_verified)}, updated_at = NOW()
+        WHERE id = ${user.id}
+        RETURNING id, email, is_verified, created_at, last_login_at, updated_at
+      `;
+    } else {
+      rows = await sql`
+        UPDATE users SET last_login_at = ${updates.last_login_at as string}, updated_at = NOW()
+        WHERE id = ${user.id}
+        RETURNING id, email, is_verified, created_at, last_login_at, updated_at
+      `;
+    }
+    const data = (rows as Record<string, unknown>[])[0];
+    if (!data) {
       return new Response(
         JSON.stringify(errorResponse(ErrorCode.INTERNAL_ERROR, 'Failed to update profile')),
-        {
-          status: 500,
-          headers: { 'Content-Type': 'application/json' },
-        }
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
       );
     }
-
     logger.info('User profile updated', { userId: user.id, fields: Object.keys(updates) });
-
     return new Response(
       JSON.stringify(successResponse(data)),
       {

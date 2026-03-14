@@ -78,8 +78,8 @@
 
 ### 后端
 - **API层**: Netlify Functions (Serverless)
-- **数据库**: Supabase PostgreSQL
-- **认证**: Supabase Auth (JWT)
+- **数据库**: Neon PostgreSQL（Netlify 内置或自建 Neon）
+- **认证**: 自定义 JWT（bcrypt + jsonwebtoken）
 - **实时数据**: CoinGecko API + Binance API
 
 ### 开发工具
@@ -97,8 +97,8 @@
 
 - Node.js >= 18.0.0
 - pnpm >= 8.0.0
-- Supabase账号（免费）
-- Netlify账号（免费）
+- Netlify 账号（免费，可选用 Netlify DB/Neon）
+- 或 Neon 账号（自建数据库时）
 
 ### 1. 克隆项目
 
@@ -114,27 +114,20 @@ git checkout 001-description-netlify-bianca
 pnpm install
 ```
 
-### 3. 配置Supabase
+### 3. 配置数据库（Neon）与环境变量
 
-#### 3.1 创建Supabase项目
+#### 3.1 创建 Neon 数据库
 
-1. 访问 [Supabase Dashboard](https://app.supabase.com)
-2. 点击 "New Project"
-3. 填写项目信息并等待创建完成
+- **方式 A**：在 Netlify 站点中启用 [Netlify DB](https://docs.netlify.com/build/data-and-storage/netlify-db/)（基于 Neon），自动得到 `NETLIFY_DATABASE_URL`。
+- **方式 B**：在 [Neon Console](https://console.neon.tech) 创建项目，复制连接字符串。
 
 #### 3.2 执行数据库迁移
 
-```bash
-# 方法一：使用Supabase CLI（推荐）
-supabase login
-supabase link --project-ref your-project-ref
-supabase db push
+在 Neon SQL Editor（或 `psql`）中依次执行：
 
-# 方法二：手动执行SQL
-# 1. 打开Supabase Dashboard → SQL Editor
-# 2. 复制并执行 database/migrations/001_initial_schema.sql
-# 3. 复制并执行 database/migrations/002_stored_procedures.sql
-```
+1. `database/migrations/001_initial_schema.sql`
+2. `database/migrations/002_stored_procedures.sql`
+3. `database/migrations/003_neon_compat.sql`
 
 #### 3.3 配置环境变量
 
@@ -142,12 +135,11 @@ supabase db push
 cp .env.example .env.local
 ```
 
-编辑 `.env.local`，填入Supabase配置：
+编辑 `.env.local`：
 
 ```env
-PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
-PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+NETLIFY_DATABASE_URL=postgresql://...   # 或 DATABASE_URL
+JWT_SECRET=your-secret-at-least-32-chars
 ```
 
 ### 4. 启动开发服务器
@@ -183,13 +175,13 @@ pnpm dev
 
 #### 3. 设置环境变量
 
-在Netlify Dashboard → Site settings → Environment variables中添加：
+在 Netlify Dashboard → Site settings → Environment variables 中添加：
 
-```
-PUBLIC_SUPABASE_URL=your_supabase_url
-PUBLIC_SUPABASE_ANON_KEY=your_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-```
+- 使用 **Netlify DB** 时：会自动注入 `NETLIFY_DATABASE_URL`，只需添加：
+  - `JWT_SECRET`：用于 JWT 签名的密钥（至少 32 位）
+- 使用 **自建 Neon** 时：
+  - `DATABASE_URL`：Neon 连接字符串
+  - `JWT_SECRET`：同上
 
 #### 4. 触发部署
 

@@ -1,54 +1,82 @@
 /**
  * Auth Service
- * 
- * 处理用户认证相关业务逻辑
+ *
+ * 使用 Neon 数据库 + JWT 的自定义认证（替代 Supabase Auth）
  */
 
-import { createServerClient } from '@/lib/supabase/client';
+import { getDb } from '@/lib/db/neon';
+import { signToken, verifyToken, getExpiresAt } from '@/lib/auth/jwt';
 import { logger } from '@/lib/utils/logger';
 import type { AuthResponse, LoginRequest, RegisterRequest } from '@/types/api.types';
+import bcrypt from 'bcryptjs';
+
+const SALT_ROUNDS = 10;
+
+/** 从请求头解析 Bearer token */
+export function getTokenFromRequest(request: Request): string | null {
+  const auth = request.headers.get('Authorization');
+  if (!auth?.startsWith('Bearer ')) return null;
+  return auth.slice(7).trim() || null;
+}
+
+/** 当前用户（与 Supabase User 兼容的字段子集，供 API 使用） */
+export interface CurrentUser {
+  id: string;
+  email: string;
+}
+
+/**
+ * 从请求中获取当前用户（校验 JWT）
+ */
+export async function getCurrentUser(request?: Request): Promise<CurrentUser | null> {
+  const token = request ? getTokenFromRequest(request) : null;
+  if (!token) return null;
+  const payload = verifyToken(token);
+  if (!payload?.sub) return null;
+  return { id: payload.sub, email: payload.email };
+}
+
+/**
+ * 验证用户已登录，否则抛错
+ */
+export async function requireAuth(request?: Request): Promise<CurrentUser> {
+  const user = await getCurrentUser(request);
+  if (!user) throw new Error('Unauthorized: Please login');
+  return user;
+}
 
 /**
  * 用户注册
  */
 export async function registerUser(data: RegisterRequest): Promise<AuthResponse> {
-  const supabase = createServerClient();
-
+  const sql = getDb();
   logger.info('Registering new user', { email: data.email });
 
-  // 创建用户账号
-  const { data: authData, error: authError } = await supabase.auth.signUp({
-    email: data.email,
-    password: data.password,
-  });
+  const passwordHash = await bcrypt.hash(data.password, SALT_ROUNDS);
+  const email = data.email.trim().toLowerCase();
 
-  if (authError) {
-    logger.error('Registration failed', authError);
-    throw new Error(authError.message);
+  const existing = await sql`SELECT id FROM users WHERE email = ${email}`;
+  if (existing.length > 0) {
+    throw new Error('Email already registered');
   }
 
-  if (!authData.user) {
-    throw new Error('Registration failed: No user data returned');
-  }
+  const inserted = await sql`
+    INSERT INTO users (email, password_hash, is_verified)
+    VALUES (${email}, ${passwordHash}, true)
+    RETURNING id, email, is_verified
+  `;
+  const row = inserted[0] as { id: string; email: string; is_verified: boolean };
+  if (!row) throw new Error('Registration failed');
 
-  // 如果启用了邮箱确认，session可能为null
-  if (!authData.session) {
-    logger.info('User registered, email confirmation required', { userId: authData.user.id });
-    throw new Error('Registration successful! Please check your email to confirm your account before logging in.');
-  }
-
-  logger.info('User registered successfully', { userId: authData.user.id });
+  const accessToken = signToken({ userId: row.id, email: row.email });
+  logger.info('User registered successfully', { userId: row.id });
 
   return {
-    user: {
-      id: authData.user.id,
-      email: authData.user.email!,
-      is_verified: authData.user.confirmed_at !== null,
-    },
+    user: { id: row.id, email: row.email, is_verified: row.is_verified },
     session: {
-      access_token: authData.session.access_token,
-      refresh_token: authData.session.refresh_token,
-      expires_at: authData.session.expires_at!,
+      access_token: accessToken,
+      refresh_token: accessToken,
+      expires_at: getExpiresAt(),
     },
   };
 }
@@ -57,92 +85,44 @@ export async function registerUser(data: RegisterRequest): Promise<AuthResponse>
  * 用户登录
  */
 export async function loginUser(data: LoginRequest): Promise<AuthResponse> {
-  const supabase = createServerClient();
-
+  const sql = getDb();
   logger.info('User login attempt', { email: data.email });
 
-  // 登录
-  const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-    email: data.email,
-    password: data.password,
-  });
-
-  if (authError) {
-    logger.error('Login failed', authError);
-    throw new Error(authError.message);
+  const email = data.email.trim().toLowerCase();
+  const users = await sql`
+    SELECT id, email, password_hash, is_verified
+    FROM users
+    WHERE email = ${email}
+  `;
+  const row = users[0] as { id: string; email: string; password_hash: string; is_verified: boolean } | undefined;
+  if (!row || !row.password_hash) {
+    throw new Error('Invalid email or password');
   }
+  const ok = await bcrypt.compare(data.password, row.password_hash);
+  if (!ok) throw new Error('Invalid email or password');
 
-  if (!authData.user || !authData.session) {
-    throw new Error('Login failed: No user data returned');
-  }
+  await sql`
+    UPDATE users
+    SET last_login_at = NOW(), updated_at = NOW()
+    WHERE id = ${row.id}
+  `;
 
-  // 更新最后登录时间
-  await supabase
-    .from('users')
-    .update({ last_login_at: new Date().toISOString() })
-    .eq('id', authData.user.id);
-
-  logger.info('User logged in successfully', { userId: authData.user.id });
+  const accessToken = signToken({ userId: row.id, email: row.email });
+  logger.info('User logged in successfully', { userId: row.id });
 
   return {
-    user: {
-      id: authData.user.id,
-      email: authData.user.email!,
-      is_verified: authData.user.confirmed_at !== null,
-    },
+    user: { id: row.id, email: row.email, is_verified: row.is_verified },
     session: {
-      access_token: authData.session.access_token,
-      refresh_token: authData.session.refresh_token,
-      expires_at: authData.session.expires_at!,
+      access_token: accessToken,
+      refresh_token: accessToken,
+      expires_at: getExpiresAt(),
     },
   };
 }
 
 /**
- * 用户登出
+ * 用户登出（客户端清除 token 即可，服务端无状态）
  */
 export async function logoutUser(): Promise<void> {
-  const supabase = createServerClient();
-
-  const { error } = await supabase.auth.signOut();
-
-  if (error) {
-    logger.error('Logout failed', error);
-    throw new Error(error.message);
-  }
-
-  logger.info('User logged out');
+  logger.info('User logged out (client-side token clear)');
 }
-
-/**
- * 获取当前用户
- */
-export async function getCurrentUser() {
-  const supabase = createServerClient();
-
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-
-  if (error) {
-    logger.error('Get current user failed', error);
-    return null;
-  }
-
-  return user;
-}
-
-/**
- * 验证用户是否已登录
- */
-export async function requireAuth() {
-  const user = await getCurrentUser();
-
-  if (!user) {
-    throw new Error('Unauthorized: Please login');
-  }
-
-  return user;
-}
-

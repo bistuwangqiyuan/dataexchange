@@ -9,10 +9,6 @@ export default defineConfig({
     edgeMiddleware: false,
   }),
   integrations: [react()],
-  vite: {
-    ssr: {
-      external: ['@supabase/supabase-js'],
-    },
-  },
+  vite: {},
 });
 

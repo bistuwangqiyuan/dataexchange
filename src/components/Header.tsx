@@ -4,7 +4,6 @@
  */
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase/client';
 
 export default function Header() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -12,25 +11,21 @@ export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
-    // 检查登录状态
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setIsLoggedIn(!!session);
-      setUserEmail(session?.user?.email || null);
-    });
-
-    // 监听认证状态变化
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsLoggedIn(!!session);
-      setUserEmail(session?.user?.email || null);
-    });
-
-    return () => subscription.unsubscribe();
+    const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+    setIsLoggedIn(!!token);
+    if (token) {
+      fetch('/api/user/profile', { headers: { Authorization: `Bearer ${token}` } })
+        .then((r) => r.json())
+        .then((d) => {
+          if (d?.data?.email) setUserEmail(d.data.email);
+        })
+        .catch(() => {});
+    }
   }, []);
 
-  const handleLogout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST' });
+  const handleLogout = () => {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
     window.location.href = '/';
   };
 

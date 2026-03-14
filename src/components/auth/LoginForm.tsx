@@ -59,7 +59,7 @@ export const LoginForm: FC<LoginFormProps> = ({ onSuccess }) => {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && (
-        <div className="bg-red-500/10 border border-red-500 text-red-500 px-4 py-3 rounded">
+        <div id="formError" role="alert" className="bg-red-500/10 border border-red-500 text-red-500 px-4 py-3 rounded">
           {error}
         </div>
       )}
@@ -71,6 +71,7 @@ export const LoginForm: FC<LoginFormProps> = ({ onSuccess }) => {
         <input
           type="email"
           id="email"
+          name="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -87,6 +88,7 @@ export const LoginForm: FC<LoginFormProps> = ({ onSuccess }) => {
         <input
           type="password"
           id="password"
+          name="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"

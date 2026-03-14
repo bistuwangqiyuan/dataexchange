@@ -2,11 +2,11 @@
 /// <reference types="astro/client" />
 
 interface ImportMetaEnv {
-  readonly PUBLIC_SUPABASE_URL: string;
-  readonly PUBLIC_SUPABASE_ANON_KEY: string;
-  readonly SUPABASE_SERVICE_ROLE_KEY: string;
-  readonly COINGECKO_API_URL: string;
-  readonly BINANCE_API_URL: string;
+  readonly NETLIFY_DATABASE_URL?: string;
+  readonly DATABASE_URL?: string;
+  readonly JWT_SECRET?: string;
+  readonly COINGECKO_API_URL?: string;
+  readonly BINANCE_API_URL?: string;
   readonly NODE_ENV: 'development' | 'production' | 'test';
 }
 
