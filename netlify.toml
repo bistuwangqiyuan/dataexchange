@@ -65,8 +65,4 @@
   status = 200
   force = true
 
-# SPA回退路由
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+# 其余路由由Astro Netlify适配器生成的_redirects处理（SSR模式，无需SPA回退）
